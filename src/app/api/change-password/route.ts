@@ -45,6 +45,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 是否被禁止修改密码（通过 AdminConfig 开关）
+    const adminConfig = await db.getAdminConfig();
+    const targetUser = adminConfig?.UserConfig.Users.find((u) => u.username === username);
+    if (targetUser?.disablePasswordChange) {
+      return NextResponse.json({ error: '该用户已被禁止修改密码' }, { status: 403 });
+    }
+
     // 修改密码
     await db.changePassword(username, newPassword);
 

@@ -16,6 +16,7 @@ const ACTIONS = [
   'setAdmin',
   'cancelAdmin',
   'changePassword',
+  'togglePasswordChange',
   'deleteUser',
   'updateUserApis',
   'userGroup',
@@ -262,6 +263,17 @@ export async function POST(request: NextRequest) {
 
         await db.changePassword(targetUsername!, targetPassword);
         break;
+      }
+      case 'togglePasswordChange': {
+        if (!targetEntry) {
+          return NextResponse.json({ error: '目标用户不存在' }, { status: 404 });
+        }
+        if (targetEntry.role === 'owner') {
+          return NextResponse.json({ error: '无法操作站长' }, { status: 400 });
+        }
+        targetEntry.disablePasswordChange = !targetEntry.disablePasswordChange;
+        await db.saveAdminConfig(adminConfig);
+        return NextResponse.json({ ok: true, disablePasswordChange: targetEntry.disablePasswordChange });
       }
       case 'deleteUser': {
         if (!targetEntry) {

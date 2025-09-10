@@ -359,3 +359,147 @@ export function cleanHtmlTags(text: string): string {
   // 使用 he 库解码 HTML 实体
   return he.decode(cleanedText);
 }
+
+/**
+ * 获取IP地址的归属地信息
+ * @param ip IP地址
+ * @returns Promise<string> IP归属地信息
+ */
+export async function getIpLocation(ip: string): Promise<string> {
+  if (!ip || ip === 'localhost' || ip === '127.0.0.1' || ip === '::1') {
+    return '本地访问';
+  }
+
+  // IPv6地址的简单处理
+  if (ip.includes(':')) {
+    return 'IPv6地址';
+  }
+
+  // 内网IP地址
+  if (isPrivateIP(ip)) {
+    return '内网地址';
+  }
+
+  // API列表，按优先级排序
+  const apiList = [
+    {
+      name: 'ip-api.com',
+      url: `https://ip-api.com/json/${ip}?lang=zh-CN&fields=status,country,regionName,city,isp,org`,
+      parser: (data: any) => {
+        if (data.status === 'success') {
+          const parts = [];
+          if (data.country && data.country !== 'undefined') parts.push(data.country);
+          if (data.regionName && data.regionName !== 'undefined') parts.push(data.regionName);
+          if (data.city && data.city !== 'undefined') parts.push(data.city);
+          if (data.isp && data.isp !== 'undefined') parts.push(data.isp);
+          return parts.length > 0 ? parts.join(' ') : null;
+        }
+        return null;
+      }
+    },
+    {
+      name: 'ipapi.co',
+      url: `https://ipapi.co/${ip}/json/`,
+      parser: (data: any) => {
+        if (!data.error) {
+          const parts = [];
+          if (data.country_name) parts.push(data.country_name);
+          if (data.region) parts.push(data.region);
+          if (data.city) parts.push(data.city);
+          if (data.org) parts.push(data.org);
+          return parts.length > 0 ? parts.join(' ') : null;
+        }
+        return null;
+      }
+    },
+    {
+      name: 'ipinfo.io',
+      url: `https://ipinfo.io/${ip}/json`,
+      parser: (data: any) => {
+        if (!data.error) {
+          const parts = [];
+          if (data.country) parts.push(data.country);
+          if (data.region) parts.push(data.region);
+          if (data.city) parts.push(data.city);
+          if (data.org) parts.push(data.org);
+          return parts.length > 0 ? parts.join(' ') : null;
+        }
+        return null;
+      }
+    }
+  ];
+
+  // 依次尝试API
+  for (const api of apiList) {
+    try {
+      console.log(`尝试使用 ${api.name} 查询IP: ${ip}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒超时
+      
+      const response = await fetch(api.url, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'application/json',
+          'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const data = await response.json();
+        const result = api.parser(data);
+        
+        if (result) {
+          console.log(`✅ ${api.name} 查询成功: ${ip} -> ${result}`);
+          return result;
+        } else {
+          console.warn(`❌ ${api.name} 返回数据无效:`, data);
+        }
+      } else {
+        console.warn(`❌ ${api.name} HTTP错误: ${response.status} ${response.statusText}`);
+      }
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.warn(`⏱️ ${api.name} 请求超时`);
+      } else {
+        console.warn(`❌ ${api.name} 请求失败:`, error.message);
+      }
+      // 继续尝试下一个API
+    }
+  }
+
+  console.error(`❌ 所有IP查询API都失败了: ${ip}`);
+  return '查询失败';
+}
+
+/**
+ * 判断是否为内网IP地址
+ * @param ip IP地址
+ * @returns boolean
+ */
+export function isPrivateIP(ip: string): boolean {
+  const parts = ip.split('.').map(Number);
+  if (parts.length !== 4 || parts.some(isNaN)) {
+    return false;
+  }
+
+  const [a, b, c, d] = parts;
+  
+  // 10.0.0.0/8
+  if (a === 10) return true;
+  
+  // 172.16.0.0/12
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  
+  // 192.168.0.0/16
+  if (a === 192 && b === 168) return true;
+  
+  // 169.254.0.0/16 (APIPA)
+  if (a === 169 && b === 254) return true;
+  
+  return false;
+}

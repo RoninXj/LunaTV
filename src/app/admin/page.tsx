@@ -52,6 +52,43 @@ import TVBoxSecurityConfig from '@/components/TVBoxSecurityConfig';
 import YouTubeConfig from '@/components/YouTubeConfig';
 import PageLayout from '@/components/PageLayout';
 
+// 强制显示滚动条的样式
+const scrollbarStyles = `
+  .force-scrollbar {
+    scrollbar-width: auto !important;
+    -ms-overflow-style: scrollbar !important;
+  }
+  .force-scrollbar::-webkit-scrollbar {
+    width: 12px !important;
+    height: 12px !important;
+    display: block !important;
+  }
+  .force-scrollbar::-webkit-scrollbar-track {
+    background: #f1f5f9 !important;
+    border-radius: 6px !important;
+  }
+  .force-scrollbar::-webkit-scrollbar-thumb {
+    background: #94a3b8 !important;
+    border-radius: 6px !important;
+    border: 2px solid #f1f5f9 !important;
+  }
+  .force-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #64748b !important;
+  }
+  .dark .force-scrollbar::-webkit-scrollbar-track {
+    background: #1e293b !important;
+  }
+  .dark .force-scrollbar::-webkit-scrollbar-thumb {
+    background: #475569 !important;
+    border-color: #1e293b !important;
+  }
+  .dark .force-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #334155 !important;
+  }
+`;
+
+// 将样式注入到页面
+
 // 统一按钮样式系统
 const buttonStyles = {
   // 主要操作按钮（蓝色）- 用于配置、设置、确认等
@@ -399,6 +436,7 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
   } | null>(null);
   const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
+  const [ipLocations, setIpLocations] = useState<Record<string, string>>({});
 
   // 当前登录用户名
   const currentUsername = getAuthInfoFromBrowserCookie()?.username || null;
@@ -730,6 +768,7 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
       | 'setAdmin'
       | 'cancelAdmin'
       | 'changePassword'
+      | 'togglePasswordChange'
       | 'deleteUser',
     targetUsername: string,
     targetPassword?: string,
@@ -1094,12 +1133,21 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
         )}
 
         {/* 用户列表 */}
-        <div className='border border-gray-200 dark:border-gray-700 rounded-lg max-h-[28rem] overflow-y-auto overflow-x-auto relative' data-table="user-list">
-          <table className='min-w-full divide-y divide-gray-200 dark:divide-gray-700'>
+        <div className='border border-gray-200 dark:border-gray-700 rounded-lg max-h-[28rem] relative'>
+          <div 
+            className='force-scrollbar max-h-[28rem]' 
+            style={{
+              overflowX: 'scroll',
+              overflowY: 'scroll',
+              scrollbarWidth: 'auto',
+              msOverflowStyle: 'scrollbar'
+            }}
+          >
+          <table className='min-w-max w-full divide-y divide-gray-200 dark:divide-gray-700'>
             <thead className='bg-gray-50 dark:bg-gray-900 sticky top-0 z-10'>
               <tr>
                 <th className='w-4' />
-                <th className='w-10 px-1 py-3 text-center'>
+                <th className='w-10 px-1 py-3 text-center' style={{ minWidth: '40px' }}>
                   {(() => {
                     // 检查是否有权限操作任何用户
                     const hasAnyPermission = config?.UserConfig?.Users?.some(user =>
@@ -1124,36 +1172,63 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                 <th
                   scope='col'
                   className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
+                  style={{ minWidth: '100px' }}
                 >
                   用户名
                 </th>
                 <th
                   scope='col'
                   className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
+                  style={{ minWidth: '150px' }}
+                >
+                  密码
+                </th>
+                <th
+                  scope='col'
+                  className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
+                  style={{ minWidth: '200px' }}
+                >
+                  注册IP地址
+                </th>
+                <th
+                  scope='col'
+                  className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
+                  style={{ minWidth: '200px' }}
+                >
+                  登录IP地址
+                </th>
+                <th
+                  scope='col'
+                  className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
+                  style={{ minWidth: '80px' }}
                 >
                   角色
                 </th>
                 <th
                   scope='col'
                   className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
+                  style={{ minWidth: '80px' }}
                 >
                   状态
                 </th>
                 <th
                   scope='col'
                   className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
+                  style={{ minWidth: '120px' }}
                 >
                   用户组
                 </th>
                 <th
                   scope='col'
                   className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
+                  style={{ minWidth: '150px' }}
                 >
                   采集源权限
                 </th>
                 <th
                   scope='col'
                   className='px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
+                  style={{ minWidth: '350px' }}
                 >
                   操作
                 </th>
@@ -1216,6 +1291,130 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100'>
                           {user.username}
+                        </td>
+                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
+                          <div className='flex items-center space-x-2'>
+                            <span className='font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded border max-w-[120px] truncate'>
+                              {user.password || '********'}
+                            </span>
+                            <button
+                              onClick={async () => {
+                                if (user.password) {
+                                  try {
+                                    await navigator.clipboard.writeText(user.password);
+                                    showAlert({
+                                      type: 'success',
+                                      title: '复制成功',
+                                      message: '密码已复制到剪贴板',
+                                      timer: 2000
+                                    });
+                                  } catch (error) {
+                                    showAlert({
+                                      type: 'error',
+                                      title: '复制失败',
+                                      message: '无法访问剪贴板，请手动复制',
+                                      timer: 3000
+                                    });
+                                  }
+                                } else {
+                                  showAlert({
+                                    type: 'warning',
+                                    title: '无法复制',
+                                    message: '用户密码不可用',
+                                    timer: 2000
+                                  });
+                                }
+                              }}
+                              className='text-xs text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors'
+                              title='复制密码'
+                            >
+                              复制
+                            </button>
+                          </div>
+                        </td>
+                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
+                          <div className='space-y-1'>
+                            <div className='flex items-center space-x-2'>
+                              <span className='font-mono text-xs bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded border'>
+                                {user.registerIP || '未知'}
+                              </span>
+                              {user.registerIP && (
+                                <button
+                                  onClick={async () => {
+                                    if (user.registerIP) {
+                                      try {
+                                        await navigator.clipboard.writeText(user.registerIP);
+                                        showAlert({
+                                          type: 'success',
+                                          title: '复制成功',
+                                          message: '注册IP地址已复制到剪贴板',
+                                          timer: 2000
+                                        });
+                                      } catch (error) {
+                                        showAlert({
+                                          type: 'error',
+                                          title: '复制失败',
+                                          message: '无法访问剪贴板，请手动复制',
+                                          timer: 3000
+                                        });
+                                      }
+                                    }
+                                  }}
+                                  className='text-xs text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 transition-colors'
+                                  title='复制注册IP地址'
+                                >
+                                  复制
+                                </button>
+                              )}
+                            </div>
+                            {user.registerTime && (
+                              <div className='text-xs text-gray-500 dark:text-gray-400'>
+                                注册时间: {new Date(user.registerTime).toLocaleString('zh-CN')}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
+                          <div className='space-y-1'>
+                            <div className='flex items-center space-x-2'>
+                              <span className='font-mono text-xs bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded border'>
+                                {user.lastLoginIP || '从未登录'}
+                              </span>
+                              {user.lastLoginIP && (
+                                <button
+                                  onClick={async () => {
+                                    if (user.lastLoginIP) {
+                                      try {
+                                        await navigator.clipboard.writeText(user.lastLoginIP);
+                                        showAlert({
+                                          type: 'success',
+                                          title: '复制成功',
+                                          message: 'IP地址已复制到剪贴板',
+                                          timer: 2000
+                                        });
+                                      } catch (error) {
+                                        showAlert({
+                                          type: 'error',
+                                          title: '复制失败',
+                                          message: '无法访问剪贴板，请手动复制',
+                                          timer: 3000
+                                        });
+                                      }
+                                    }
+                                  }}
+                                  className='text-xs text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors'
+                                  title='复制IP地址'
+                                >
+                                  复制
+                                </button>
+                              )}
+                            </div>
+                            {user.lastLoginTime && (
+                              <div className='text-xs text-gray-500 dark:text-gray-400'>
+                                {new Date(user.lastLoginTime).toLocaleString('zh-CN')}
+                              </div>
+                            )}
+                          </div>
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap'>
                           <span
@@ -1286,19 +1485,33 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                           </div>
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2'>
-                          {/* 修改密码按钮 */}
+                          {/* 修改密码按钮（支持禁改密码开关） */}
                           {canChangePassword && (
                             <button
-                              onClick={() =>
-                                handleShowChangePasswordForm(user.username)
-                              }
-                              className={buttonStyles.roundedPrimary}
+                              onClick={() => handleShowChangePasswordForm(user.username)}
+                              disabled={user.disablePasswordChange}
+                              className={`${buttonStyles.roundedPrimary} ${user.disablePasswordChange ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              title={user.disablePasswordChange ? '该用户已被禁止修改密码' : '修改密码'}
                             >
                               修改密码
                             </button>
                           )}
                           {canOperate && (
                             <>
+                              {/* 禁止/允许修改密码开关 */}
+                              <button
+                                onClick={async () => {
+                                  await withLoading(`togglePasswordChange_${user.username}`, async () => {
+                                    await handleUserAction('togglePasswordChange', user.username);
+                                  });
+                                }}
+                                disabled={isLoading(`togglePasswordChange_${user.username}`)}
+                                className={`${user.disablePasswordChange ? buttonStyles.roundedSecondary : buttonStyles.roundedSuccess} ${isLoading(`togglePasswordChange_${user.username}`) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                title={user.disablePasswordChange ? '点击允许用户修改密码' : '点击禁止用户修改密码'}
+                              >
+                                {user.disablePasswordChange ? '禁改密码' : '允许改密'}
+                              </button>
+
                               {/* 其他操作按钮 */}
                               {user.role === 'user' && (
                                 <button
@@ -2728,6 +2941,9 @@ const VideoSourceConfig = ({
               </th>
               <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
                 状态
+              </th>
+              <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                有效性
               </th>
               <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
                 有效性
@@ -4814,6 +5030,41 @@ const NetDiskConfig = ({
   );
 };
 
+// 强制显示滚动条的样式
+const scrollbarStyles = `
+  .force-scrollbar {
+    scrollbar-width: auto !important;
+    -ms-overflow-style: scrollbar !important;
+  }
+  .force-scrollbar::-webkit-scrollbar {
+    width: 12px !important;
+    height: 12px !important;
+    display: block !important;
+  }
+  .force-scrollbar::-webkit-scrollbar-track {
+    background: #f1f5f9 !important;
+    border-radius: 6px !important;
+  }
+  .force-scrollbar::-webkit-scrollbar-thumb {
+    background: #94a3b8 !important;
+    border-radius: 6px !important;
+    border: 2px solid #f1f5f9 !important;
+  }
+  .force-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #64748b !important;
+  }
+  .dark .force-scrollbar::-webkit-scrollbar-track {
+    background: #1e293b !important;
+  }
+  .dark .force-scrollbar::-webkit-scrollbar-thumb {
+    background: #475569 !important;
+    border-color: #1e293b !important;
+  }
+  .dark .force-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #334155 !important;
+  }
+`;
+
 function AdminPageClient() {
   const { alertModal, showAlert, hideAlert } = useAlertModal();
   const { isLoading, withLoading } = useLoadingState();
@@ -4836,6 +5087,17 @@ function AdminPageClient() {
     cacheManager: false,
     dataMigration: false,
   });
+
+  // 注入滚动条样式
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = scrollbarStyles;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   // 获取管理员配置
   // showLoading 用于控制是否在请求期间显示整体加载骨架。
