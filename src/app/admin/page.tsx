@@ -52,43 +52,6 @@ import TVBoxSecurityConfig from '@/components/TVBoxSecurityConfig';
 import YouTubeConfig from '@/components/YouTubeConfig';
 import PageLayout from '@/components/PageLayout';
 
-// 强制显示滚动条的样式
-const scrollbarStyles = `
-  .force-scrollbar {
-    scrollbar-width: auto !important;
-    -ms-overflow-style: scrollbar !important;
-  }
-  .force-scrollbar::-webkit-scrollbar {
-    width: 12px !important;
-    height: 12px !important;
-    display: block !important;
-  }
-  .force-scrollbar::-webkit-scrollbar-track {
-    background: #f1f5f9 !important;
-    border-radius: 6px !important;
-  }
-  .force-scrollbar::-webkit-scrollbar-thumb {
-    background: #94a3b8 !important;
-    border-radius: 6px !important;
-    border: 2px solid #f1f5f9 !important;
-  }
-  .force-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #64748b !important;
-  }
-  .dark .force-scrollbar::-webkit-scrollbar-track {
-    background: #1e293b !important;
-  }
-  .dark .force-scrollbar::-webkit-scrollbar-thumb {
-    background: #475569 !important;
-    border-color: #1e293b !important;
-  }
-  .dark .force-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #334155 !important;
-  }
-`;
-
-// 将样式注入到页面
-
 // 统一按钮样式系统
 const buttonStyles = {
   // 主要操作按钮（蓝色）- 用于配置、设置、确认等
@@ -436,86 +399,9 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
   } | null>(null);
   const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
-  const [ipLocations, setIpLocations] = useState<Record<string, string>>({});
 
   // 当前登录用户名
   const currentUsername = getAuthInfoFromBrowserCookie()?.username || null;
-
-  // 获取IP归属地信息
-  useEffect(() => {
-    if (config?.UserConfig?.Users) {
-      const fetchIpLocations = async () => {
-        const locations: Record<string, string> = {};
-        const ipsToQuery: string[] = [];
-        
-        // 收集需要查询的IP地址
-        for (const user of config.UserConfig.Users) {
-          // 注册IP
-          if (user.registerIP && !ipLocations[user.registerIP] && !ipsToQuery.includes(user.registerIP)) {
-            ipsToQuery.push(user.registerIP);
-          }
-          // 登录IP
-          if (user.lastLoginIP && !ipLocations[user.lastLoginIP] && !ipsToQuery.includes(user.lastLoginIP)) {
-            ipsToQuery.push(user.lastLoginIP);
-          }
-        }
-        
-        if (ipsToQuery.length === 0) return;
-        
-        console.log(`📍 开始批量查询 ${ipsToQuery.length} 个IP地址的归属地...`);
-        
-        // 设置所有IP为查询中状态
-        const queryingStatus: Record<string, string> = {};
-        ipsToQuery.forEach(ip => {
-          queryingStatus[ip] = '查询中...';
-        });
-        setIpLocations(prev => ({ ...prev, ...queryingStatus }));
-        
-        // 并发查询所有IP，但限制并发数量避免过载
-        const BATCH_SIZE = 3; // 每批查询3个IP
-        const results: Record<string, string> = {};
-        
-        for (let i = 0; i < ipsToQuery.length; i += BATCH_SIZE) {
-          const batch = ipsToQuery.slice(i, i + BATCH_SIZE);
-          
-          // 并发查询这一批IP
-          const batchPromises = batch.map(async (ip) => {
-            try {
-              console.log(`🔍 正在查询IP: ${ip}`);
-              const location = await getIpLocation(ip);
-              console.log(`✅ IP查询成功: ${ip} -> ${location}`);
-              return { ip, location };
-            } catch (error) {
-              console.error(`❌ IP查询失败: ${ip}`, error);
-              return { ip, location: '查询失败' };
-            }
-          });
-          
-          // 等待这一批查询完成
-          const batchResults = await Promise.all(batchPromises);
-          
-          // 更新结果
-          batchResults.forEach(({ ip, location }) => {
-            results[ip] = location;
-          });
-          
-          // 实时更新UI，让用户看到进度
-          setIpLocations(prev => ({ ...prev, ...results }));
-          
-          // 批次间延迟，避免API限制
-          if (i + BATCH_SIZE < ipsToQuery.length) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-        }
-        
-        console.log(`🎉 IP归属地查询完成，总共查询了 ${ipsToQuery.length} 个IP`);
-      };
-      
-      // 延迟执行，避免页面加载时阻塞
-      const timer = setTimeout(fetchIpLocations, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [config?.UserConfig?.Users]);
 
   // 使用 useMemo 计算全选状态，避免每次渲染都重新计算
   const selectAllUsers = useMemo(() => {
@@ -844,7 +730,6 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
       | 'setAdmin'
       | 'cancelAdmin'
       | 'changePassword'
-      | 'togglePasswordChange'
       | 'deleteUser',
     targetUsername: string,
     targetPassword?: string,
@@ -984,6 +869,8 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
           </div>
         </div>
       </div>
+
+
 
       {/* 用户组管理 */}
       <div>
@@ -1207,21 +1094,12 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
         )}
 
         {/* 用户列表 */}
-        <div className='border border-gray-200 dark:border-gray-700 rounded-lg max-h-[28rem] relative'>
-          <div 
-            className='force-scrollbar max-h-[28rem]' 
-            style={{
-              overflowX: 'scroll',
-              overflowY: 'scroll',
-              scrollbarWidth: 'auto',
-              msOverflowStyle: 'scrollbar'
-            }}
-          >
-          <table className='min-w-max w-full divide-y divide-gray-200 dark:divide-gray-700'>
+        <div className='border border-gray-200 dark:border-gray-700 rounded-lg max-h-[28rem] overflow-y-auto overflow-x-auto relative' data-table="user-list">
+          <table className='min-w-full divide-y divide-gray-200 dark:divide-gray-700'>
             <thead className='bg-gray-50 dark:bg-gray-900 sticky top-0 z-10'>
               <tr>
                 <th className='w-4' />
-                <th className='w-10 px-1 py-3 text-center' style={{ minWidth: '40px' }}>
+                <th className='w-10 px-1 py-3 text-center'>
                   {(() => {
                     // 检查是否有权限操作任何用户
                     const hasAnyPermission = config?.UserConfig?.Users?.some(user =>
@@ -1246,63 +1124,36 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                 <th
                   scope='col'
                   className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
-                  style={{ minWidth: '100px' }}
                 >
                   用户名
                 </th>
                 <th
                   scope='col'
                   className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
-                  style={{ minWidth: '150px' }}
-                >
-                  密码
-                </th>
-                <th
-                  scope='col'
-                  className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
-                  style={{ minWidth: '200px' }}
-                >
-                  注册IP地址
-                </th>
-                <th
-                  scope='col'
-                  className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
-                  style={{ minWidth: '200px' }}
-                >
-                  登录IP地址
-                </th>
-                <th
-                  scope='col'
-                  className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
-                  style={{ minWidth: '80px' }}
                 >
                   角色
                 </th>
                 <th
                   scope='col'
                   className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
-                  style={{ minWidth: '80px' }}
                 >
                   状态
                 </th>
                 <th
                   scope='col'
                   className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
-                  style={{ minWidth: '120px' }}
                 >
                   用户组
                 </th>
                 <th
                   scope='col'
                   className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
-                  style={{ minWidth: '150px' }}
                 >
                   采集源权限
                 </th>
                 <th
                   scope='col'
                   className='px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
-                  style={{ minWidth: '350px' }}
                 >
                   操作
                 </th>
@@ -1365,200 +1216,6 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100'>
                           {user.username}
-                        </td>
-                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
-                          <div className='flex items-center space-x-2'>
-                            <span className='font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded border max-w-[120px] truncate'>
-                              {user.password || '********'}
-                            </span>
-                            <button
-                              onClick={async () => {
-                                if (user.password) {
-                                  try {
-                                    await navigator.clipboard.writeText(user.password);
-                                    showAlert({
-                                      type: 'success',
-                                      title: '复制成功',
-                                      message: '密码已复制到剪贴板',
-                                      timer: 2000
-                                    });
-                                  } catch (error) {
-                                    showAlert({
-                                      type: 'error',
-                                      title: '复制失败',
-                                      message: '无法访问剪贴板，请手动复制',
-                                      timer: 3000
-                                    });
-                                  }
-                                } else {
-                                  showAlert({
-                                    type: 'warning',
-                                    title: '无法复制',
-                                    message: '用户密码不可用',
-                                    timer: 2000
-                                  });
-                                }
-                              }}
-                              className='text-xs text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors'
-                              title='复制密码'
-                            >
-                              复制
-                            </button>
-                          </div>
-                        </td>
-                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
-                          <div className='space-y-1'>
-                            <div className='flex items-center space-x-2'>
-                              <span className='font-mono text-xs bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded border'>
-                                {user.registerIP || '未知'}
-                              </span>
-                              {user.registerIP && (
-                                <button
-                                  onClick={async () => {
-                                    if (user.registerIP) {
-                                      try {
-                                        await navigator.clipboard.writeText(user.registerIP);
-                                        showAlert({
-                                          type: 'success',
-                                          title: '复制成功',
-                                          message: '注册IP地址已复制到剪贴板',
-                                          timer: 2000
-                                        });
-                                      } catch (error) {
-                                        showAlert({
-                                          type: 'error',
-                                          title: '复制失败',
-                                          message: '无法访问剪贴板，请手动复制',
-                                          timer: 3000
-                                        });
-                                      }
-                                    }
-                                  }}
-                                  className='text-xs text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 transition-colors'
-                                  title='复制注册IP地址'
-                                >
-                                  复制
-                                </button>
-                              )}
-                            </div>
-                            {user.registerIP && ipLocations[user.registerIP] && (
-                              <div className='flex items-center space-x-2'>
-                                <div className={`text-xs px-2 py-1 rounded border ${
-                                  ipLocations[user.registerIP] === '查询中...'
-                                    ? 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20'
-                                    : ipLocations[user.registerIP].includes('失败')
-                                    ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
-                                    : 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20'
-                                }`}>
-                                  {ipLocations[user.registerIP]}
-                                </div>
-                                {ipLocations[user.registerIP].includes('失败') && (
-                                  <button
-                                    onClick={async () => {
-                                      if (user.registerIP) {
-                                        console.log(`🔄 重新查询注册IP: ${user.registerIP}`);
-                                        setIpLocations(prev => ({ ...prev, [user.registerIP!]: '重新查询中...' }));
-                                        try {
-                                          const location = await getIpLocation(user.registerIP);
-                                          setIpLocations(prev => ({ ...prev, [user.registerIP!]: location }));
-                                          console.log(`✅ 注册IP重新查询成功: ${user.registerIP} -> ${location}`);
-                                        } catch (error) {
-                                          console.error(`❌ 注册IP重新查询失败: ${user.registerIP}`, error);
-                                          setIpLocations(prev => ({ ...prev, [user.registerIP!]: '重试失败' }));
-                                        }
-                                      }
-                                    }}
-                                    className='text-xs text-purple-500 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 transition-colors'
-                                    title='重试查询注册IP归属地'
-                                  >
-                                    重试
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                            {user.registerTime && (
-                              <div className='text-xs text-gray-500 dark:text-gray-400'>
-                                注册时间: {new Date(user.registerTime).toLocaleString('zh-CN')}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
-                          <div className='space-y-1'>
-                            <div className='flex items-center space-x-2'>
-                              <span className='font-mono text-xs bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded border'>
-                                {user.lastLoginIP || '从未登录'}
-                              </span>
-                              {user.lastLoginIP && (
-                                <button
-                                  onClick={async () => {
-                                    if (user.lastLoginIP) {
-                                      try {
-                                        await navigator.clipboard.writeText(user.lastLoginIP);
-                                        showAlert({
-                                          type: 'success',
-                                          title: '复制成功',
-                                          message: 'IP地址已复制到剪贴板',
-                                          timer: 2000
-                                        });
-                                      } catch (error) {
-                                        showAlert({
-                                          type: 'error',
-                                          title: '复制失败',
-                                          message: '无法访问剪贴板，请手动复制',
-                                          timer: 3000
-                                        });
-                                      }
-                                    }
-                                  }}
-                                  className='text-xs text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors'
-                                  title='复制IP地址'
-                                >
-                                  复制
-                                </button>
-                              )}
-                            </div>
-                            {user.lastLoginIP && ipLocations[user.lastLoginIP] && (
-                              <div className='flex items-center space-x-2'>
-                                <div className={`text-xs px-2 py-1 rounded border ${
-                                  ipLocations[user.lastLoginIP] === '查询中...'
-                                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
-                                    : ipLocations[user.lastLoginIP].includes('失败')
-                                    ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
-                                    : 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-                                }`}>
-                                  {ipLocations[user.lastLoginIP]}
-                                </div>
-                                {ipLocations[user.lastLoginIP].includes('失败') && (
-                                  <button
-                                    onClick={async () => {
-                                      if (user.lastLoginIP) {
-                                        console.log(`🔄 重新查询登录IP: ${user.lastLoginIP}`);
-                                        setIpLocations(prev => ({ ...prev, [user.lastLoginIP!]: '重新查询中...' }));
-                                        try {
-                                          const location = await getIpLocation(user.lastLoginIP);
-                                          setIpLocations(prev => ({ ...prev, [user.lastLoginIP!]: location }));
-                                          console.log(`✅ 登录IP重新查询成功: ${user.lastLoginIP} -> ${location}`);
-                                        } catch (error) {
-                                          console.error(`❌ 登录IP重新查询失败: ${user.lastLoginIP}`, error);
-                                          setIpLocations(prev => ({ ...prev, [user.lastLoginIP!]: '重试失败' }));
-                                        }
-                                      }
-                                    }}
-                                    className='text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors'
-                                    title='重试查询IP归属地'
-                                  >
-                                    重试
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                            {user.lastLoginTime && (
-                              <div className='text-xs text-gray-500 dark:text-gray-400'>
-                                {new Date(user.lastLoginTime).toLocaleString('zh-CN')}
-                              </div>
-                            )}
-                          </div>
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap'>
                           <span
@@ -1629,33 +1286,19 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                           </div>
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2'>
-                          {/* 修改密码按钮（支持禁改密码开关） */}
+                          {/* 修改密码按钮 */}
                           {canChangePassword && (
                             <button
-                              onClick={() => handleShowChangePasswordForm(user.username)}
-                              disabled={user.disablePasswordChange}
-                              className={`${buttonStyles.roundedPrimary} ${user.disablePasswordChange ? 'opacity-50 cursor-not-allowed' : ''}`}
-                              title={user.disablePasswordChange ? '该用户已被禁止修改密码' : '修改密码'}
+                              onClick={() =>
+                                handleShowChangePasswordForm(user.username)
+                              }
+                              className={buttonStyles.roundedPrimary}
                             >
                               修改密码
                             </button>
                           )}
                           {canOperate && (
                             <>
-                              {/* 禁止/允许修改密码开关 */}
-                              <button
-                                onClick={async () => {
-                                  await withLoading(`togglePasswordChange_${user.username}`, async () => {
-                                    await handleUserAction('togglePasswordChange', user.username);
-                                  });
-                                }}
-                                disabled={isLoading(`togglePasswordChange_${user.username}`)}
-                                className={`${user.disablePasswordChange ? buttonStyles.roundedSecondary : buttonStyles.roundedSuccess} ${isLoading(`togglePasswordChange_${user.username}`) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                title={user.disablePasswordChange ? '点击允许用户修改密码' : '点击禁止用户修改密码'}
-                              >
-                                {user.disablePasswordChange ? '禁改密码' : '允许改密'}
-                              </button>
-
                               {/* 其他操作按钮 */}
                               {user.role === 'user' && (
                                 <button
@@ -2420,7 +2063,7 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                     setSelectedUserGroup('');
                   }}
                   className={`px-6 py-2.5 text-sm font-medium ${buttonStyles.secondary}`}
->
+                >
                   取消
                 </button>
                 <button
@@ -2452,8 +2095,6 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
     </div>
   );
 }
-
-// 视频源配置组件
 
 // 视频源配置组件
 const VideoSourceConfig = ({
@@ -3087,9 +2728,6 @@ const VideoSourceConfig = ({
               </th>
               <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
                 状态
-              </th>
-              <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
-                有效性
               </th>
               <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
                 有效性
@@ -5176,41 +4814,6 @@ const NetDiskConfig = ({
   );
 };
 
-// 强制显示滚动条的样式
-const scrollbarStyles = `
-  .force-scrollbar {
-    scrollbar-width: auto !important;
-    -ms-overflow-style: scrollbar !important;
-  }
-  .force-scrollbar::-webkit-scrollbar {
-    width: 12px !important;
-    height: 12px !important;
-    display: block !important;
-  }
-  .force-scrollbar::-webkit-scrollbar-track {
-    background: #f1f5f9 !important;
-    border-radius: 6px !important;
-  }
-  .force-scrollbar::-webkit-scrollbar-thumb {
-    background: #94a3b8 !important;
-    border-radius: 6px !important;
-    border: 2px solid #f1f5f9 !important;
-  }
-  .force-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #64748b !important;
-  }
-  .dark .force-scrollbar::-webkit-scrollbar-track {
-    background: #1e293b !important;
-  }
-  .dark .force-scrollbar::-webkit-scrollbar-thumb {
-    background: #475569 !important;
-    border-color: #1e293b !important;
-  }
-  .dark .force-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #334155 !important;
-  }
-`;
-
 function AdminPageClient() {
   const { alertModal, showAlert, hideAlert } = useAlertModal();
   const { isLoading, withLoading } = useLoadingState();
@@ -5233,17 +4836,6 @@ function AdminPageClient() {
     cacheManager: false,
     dataMigration: false,
   });
-
-  // 注入滚动条样式
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.innerHTML = scrollbarStyles;
-    document.head.appendChild(style);
-    
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
 
   // 获取管理员配置
   // showLoading 用于控制是否在请求期间显示整体加载骨架。
@@ -5609,7 +5201,7 @@ function AdminPageClient() {
       )}
     </PageLayout>
   );
-};
+}
 
 export default function AdminPage() {
   return (

@@ -2,13 +2,12 @@
 
 'use client';
 
-import { AlertCircle, CheckCircle, MapPin } from 'lucide-react';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
 import { CURRENT_VERSION } from '@/lib/version';
 import { checkForUpdates, UpdateStatus } from '@/lib/version_check';
-import { getIpLocation } from '@/lib/utils';
 
 import { useSite } from '@/components/SiteProvider';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -76,7 +75,6 @@ function LoginPageClient() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [shouldAskUsername, setShouldAskUsername] = useState(false);
-  const [ipInfo, setIpInfo] = useState<string>('');
 
   const { siteName } = useSite();
 
@@ -85,40 +83,6 @@ function LoginPageClient() {
     if (typeof window !== 'undefined') {
       const storageType = (window as any).RUNTIME_CONFIG?.STORAGE_TYPE;
       setShouldAskUsername(storageType && storageType !== 'localstorage');
-      
-      // 获取IP信息
-      const fetchIpInfo = async () => {
-        try {
-          // 获取客户端IP
-          let ip = '未知';
-          
-          // 尝试从不同头部获取IP
-          if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-            try {
-              const response = await fetch('https://api.ipify.org?format=json');
-              const data = await response.json();
-              ip = data.ip;
-            } catch (e) {
-              console.log('无法通过api.ipify.org获取IP');
-            }
-          }
-          
-          // 如果还是未知，尝试其他方式
-          if (ip === '未知') {
-            // 这里可以添加其他IP获取方式
-            ip = '本地访问';
-          }
-          
-          // 获取IP归属地
-          const location = await getIpLocation(ip);
-          setIpInfo(`${ip} (${location})`);
-        } catch (err) {
-          console.error('获取IP信息失败:', err);
-          setIpInfo('本地访问');
-        }
-      };
-      
-      fetchIpInfo();
     }
   }, []);
 
@@ -155,6 +119,8 @@ function LoginPageClient() {
     }
   };
 
+
+
   return (
     <div className='relative min-h-screen flex items-center justify-center px-4 overflow-hidden'>
       <div className='absolute top-4 right-4'>
@@ -164,13 +130,6 @@ function LoginPageClient() {
         <h1 className='text-green-600 tracking-tight text-center text-3xl font-extrabold mb-8 bg-clip-text drop-shadow-sm'>
           {siteName}
         </h1>
-        {/* 显示IP信息 */}
-        {ipInfo && (
-          <div className='mb-6 flex items-center justify-center text-sm text-gray-600 dark:text-gray-400'>
-            <MapPin className='w-4 h-4 mr-1' />
-            <span>您的IP: {ipInfo}</span>
-          </div>
-        )}
         <form onSubmit={handleSubmit} className='space-y-8'>
           {shouldAskUsername && (
             <div>

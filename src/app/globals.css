@@ -11,53 +11,6 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none; /* Chrome, Safari and Opera */
   }
-  
-  /* 强制显示滚动条的工具类 */
-  .force-scrollbar {
-    -ms-overflow-style: scrollbar !important; /* IE & Edge */
-    scrollbar-width: auto !important; /* Firefox */
-  }
-
-  .force-scrollbar::-webkit-scrollbar {
-    display: block !important; /* Chrome, Safari, Opera */
-    width: 8px;
-    height: 8px;
-  }
-  
-  .force-scrollbar::-webkit-scrollbar-track {
-    background: rgba(31, 41, 55, 0.1);
-    border-radius: 4px;
-  }
-  
-  .force-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(75, 85, 99, 0.3);
-    border-radius: 4px;
-  }
-  
-  .force-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(107, 114, 128, 0.5);
-  }
-  
-  .force-scrollbar::-webkit-scrollbar-corner {
-    background: rgba(31, 41, 55, 0.1);
-  }
-  
-  /* 深色模式下的滚动条样式 */
-  .dark .force-scrollbar::-webkit-scrollbar-track {
-    background: rgba(30, 41, 59, 0.3);
-  }
-  
-  .dark .force-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(51, 65, 85, 0.5);
-  }
-  
-  .dark .force-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(71, 85, 105, 0.7);
-  }
-  
-  .dark .force-scrollbar::-webkit-scrollbar-corner {
-    background: rgba(30, 41, 59, 0.3);
-  }
 }
 
 :root {
@@ -140,53 +93,14 @@ html:not(.dark) body {
   }
 }
 
-/* 强制显示滚动条（除了移动端） */
-@media (min-width: 768px) {
-  * {
-    -ms-overflow-style: scrollbar; /* IE & Edge */
-    scrollbar-width: auto; /* Firefox */
-  }
+/* 隐藏所有滚动条（兼容 WebKit、Firefox、IE/Edge） */
+* {
+  -ms-overflow-style: none; /* IE & Edge */
+  scrollbar-width: none; /* Firefox */
+}
 
-  *::-webkit-scrollbar {
-    display: block; /* Chrome, Safari, Opera */
-    width: 8px;
-    height: 8px;
-  }
-  
-  *::-webkit-scrollbar-track {
-    background: rgba(31, 41, 55, 0.1);
-    border-radius: 4px;
-  }
-  
-  *::-webkit-scrollbar-thumb {
-    background: rgba(75, 85, 99, 0.3);
-    border-radius: 4px;
-  }
-  
-  *::-webkit-scrollbar-thumb:hover {
-    background: rgba(107, 114, 128, 0.5);
-  }
-  
-  *::-webkit-scrollbar-corner {
-    background: rgba(31, 41, 55, 0.1);
-  }
-  
-  /* 深色模式下的滚动条样式 */
-  .dark *::-webkit-scrollbar-track {
-    background: rgba(30, 41, 59, 0.3);
-  }
-  
-  .dark *::-webkit-scrollbar-thumb {
-    background: rgba(51, 65, 85, 0.5);
-  }
-  
-  .dark *::-webkit-scrollbar-thumb:hover {
-    background: rgba(71, 85, 105, 0.7);
-  }
-  
-  .dark *::-webkit-scrollbar-corner {
-    background: rgba(30, 41, 59, 0.3);
-  }
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 /* View Transitions API 动画 */
