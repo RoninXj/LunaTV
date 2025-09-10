@@ -2276,7 +2276,7 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                     setSelectedUserGroup('');
                   }}
                   className={`px-6 py-2.5 text-sm font-medium ${buttonStyles.secondary}`}
-                >
+>
                   取消
                 </button>
                 <button
@@ -2308,6 +2308,8 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
     </div>
   );
 }
+
+// 视频源配置组件
 
 // 视频源配置组件
 const VideoSourceConfig = ({
