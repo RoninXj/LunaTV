@@ -1177,13 +1177,6 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                 <th
                   scope='col'
                   className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
-                  style={{ minWidth: '150px' }}
-                >
-                  密码
-                </th>
-                <th
-                  scope='col'
-                  className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
                 >
                   角色
                 </th>
@@ -1284,7 +1277,47 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                           )}
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100'>
-                          {user.username}
+                          <div className='space-y-1'>
+                            <div>{user.username}</div>
+                            <div className='flex items-center space-x-2'>
+                              <span className='font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded border max-w-[120px] truncate'>
+                                {user.password || '********'}
+                              </span>
+                              <button
+                                onClick={async () => {
+                                  if (user.password) {
+                                    try {
+                                      await navigator.clipboard.writeText(user.password);
+                                      showAlert({
+                                        type: 'success',
+                                        title: '复制成功',
+                                        message: '密码已复制到剪贴板',
+                                        timer: 2000
+                                      });
+                                    } catch (error) {
+                                      showAlert({
+                                        type: 'error',
+                                        title: '复制失败',
+                                        message: '无法访问剪贴板，请手动复制',
+                                        timer: 3000
+                                      });
+                                    }
+                                  } else {
+                                    showAlert({
+                                      type: 'warning',
+                                      title: '无法复制',
+                                      message: '用户密码不可用',
+                                      timer: 2000
+                                    });
+                                  }
+                                }}
+                                className='text-xs text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors'
+                                title='复制密码'
+                              >
+                                复制
+                              </button>
+                            </div>
+                          </div>
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap'>
                           <span
@@ -1410,46 +1443,7 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                             )}
                           </div>
                         </td>
-                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
-                          <div className='flex items-center space-x-2'>
-                            <span className='font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded border max-w-[120px] truncate'>
-                              {user.password || '********'}
-                            </span>
-                            <button
-                              onClick={async () => {
-                                if (user.password) {
-                                  try {
-                                    await navigator.clipboard.writeText(user.password);
-                                    showAlert({
-                                      type: 'success',
-                                      title: '复制成功',
-                                      message: '密码已复制到剪贴板',
-                                      timer: 2000
-                                    });
-                                  } catch (error) {
-                                    showAlert({
-                                      type: 'error',
-                                      title: '复制失败',
-                                      message: '无法访问剪贴板，请手动复制',
-                                      timer: 3000
-                                    });
-                                  }
-                                } else {
-                                  showAlert({
-                                    type: 'warning',
-                                    title: '无法复制',
-                                    message: '用户密码不可用',
-                                    timer: 2000
-                                  });
-                                }
-                              }}
-                              className='text-xs text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors'
-                              title='复制密码'
-                            >
-                              复制
-                            </button>
-                          </div>
-                        </td>
+                        
                         <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
                           <div className='space-y-1'>
                             <div className='flex items-center space-x-2'>
