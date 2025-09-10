@@ -441,6 +441,82 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
   // 当前登录用户名
   const currentUsername = getAuthInfoFromBrowserCookie()?.username || null;
 
+  // 获取IP归属地信息
+  useEffect(() => {
+    if (config?.UserConfig?.Users) {
+      const fetchIpLocations = async () => {
+        const locations: Record<string, string> = {};
+        const ipsToQuery: string[] = [];
+        
+        // 收集需要查询的IP地址
+        for (const user of config.UserConfig.Users) {
+          // 注册IP
+          if (user.registerIP && !ipLocations[user.registerIP] && !ipsToQuery.includes(user.registerIP)) {
+            ipsToQuery.push(user.registerIP);
+          }
+          // 登录IP
+          if (user.lastLoginIP && !ipLocations[user.lastLoginIP] && !ipsToQuery.includes(user.lastLoginIP)) {
+            ipsToQuery.push(user.lastLoginIP);
+          }
+        }
+        
+        if (ipsToQuery.length === 0) return;
+        
+        console.log(`📍 开始批量查询 ${ipsToQuery.length} 个IP地址的归属地...`);
+        
+        // 设置所有IP为查询中状态
+        const queryingStatus: Record<string, string> = {};
+        ipsToQuery.forEach(ip => {
+          queryingStatus[ip] = '查询中...';
+        });
+        setIpLocations(prev => ({ ...prev, ...queryingStatus }));
+        
+        // 并发查询所有IP，但限制并发数量避免过载
+        const BATCH_SIZE = 3; // 每批查询3个IP
+        const results: Record<string, string> = {};
+        
+        for (let i = 0; i < ipsToQuery.length; i += BATCH_SIZE) {
+          const batch = ipsToQuery.slice(i, i + BATCH_SIZE);
+          
+          // 并发查询这一批IP
+          const batchPromises = batch.map(async (ip) => {
+            try {
+              console.log(`🔍 正在查询IP: ${ip}`);
+              const location = await getIpLocation(ip);
+              console.log(`✅ IP查询成功: ${ip} -> ${location}`);
+              return { ip, location };
+            } catch (error) {
+              console.error(`❌ IP查询失败: ${ip}`, error);
+              return { ip, location: '查询失败' };
+            }
+          });
+          
+          // 等待这一批查询完成
+          const batchResults = await Promise.all(batchPromises);
+          
+          // 更新结果
+          batchResults.forEach(({ ip, location }) => {
+            results[ip] = location;
+          });
+          
+          // 实时更新UI，让用户看到进度
+          setIpLocations(prev => ({ ...prev, ...results }));
+          
+          // 批次间延迟，避免API限制
+          if (i + BATCH_SIZE < ipsToQuery.length) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+        
+        console.log(`🎉 IP归属地查询完成，总共查询了 ${ipsToQuery.length} 个IP`);
+      };
+      
+      // 延迟执行，避免页面加载时阻塞
+      const timer = setTimeout(fetchIpLocations, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [config?.UserConfig?.Users]);
+
   // 使用 useMemo 计算全选状态，避免每次渲染都重新计算
   const selectAllUsers = useMemo(() => {
     const selectableUserCount = config?.UserConfig?.Users?.filter(user =>
@@ -909,8 +985,6 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
         </div>
       </div>
 
-
-
       {/* 用户组管理 */}
       <div>
         <div className='flex items-center justify-between mb-3'>
@@ -1367,6 +1441,41 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                                 </button>
                               )}
                             </div>
+                            {user.registerIP && ipLocations[user.registerIP] && (
+                              <div className='flex items-center space-x-2'>
+                                <div className={`text-xs px-2 py-1 rounded border ${
+                                  ipLocations[user.registerIP] === '查询中...'
+                                    ? 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20'
+                                    : ipLocations[user.registerIP].includes('失败')
+                                    ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
+                                    : 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20'
+                                }`}>
+                                  {ipLocations[user.registerIP]}
+                                </div>
+                                {ipLocations[user.registerIP].includes('失败') && (
+                                  <button
+                                    onClick={async () => {
+                                      if (user.registerIP) {
+                                        console.log(`🔄 重新查询注册IP: ${user.registerIP}`);
+                                        setIpLocations(prev => ({ ...prev, [user.registerIP!]: '重新查询中...' }));
+                                        try {
+                                          const location = await getIpLocation(user.registerIP);
+                                          setIpLocations(prev => ({ ...prev, [user.registerIP!]: location }));
+                                          console.log(`✅ 注册IP重新查询成功: ${user.registerIP} -> ${location}`);
+                                        } catch (error) {
+                                          console.error(`❌ 注册IP重新查询失败: ${user.registerIP}`, error);
+                                          setIpLocations(prev => ({ ...prev, [user.registerIP!]: '重试失败' }));
+                                        }
+                                      }
+                                    }}
+                                    className='text-xs text-purple-500 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 transition-colors'
+                                    title='重试查询注册IP归属地'
+                                  >
+                                    重试
+                                  </button>
+                                )}
+                              </div>
+                            )}
                             {user.registerTime && (
                               <div className='text-xs text-gray-500 dark:text-gray-400'>
                                 注册时间: {new Date(user.registerTime).toLocaleString('zh-CN')}
@@ -1409,6 +1518,41 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                                 </button>
                               )}
                             </div>
+                            {user.lastLoginIP && ipLocations[user.lastLoginIP] && (
+                              <div className='flex items-center space-x-2'>
+                                <div className={`text-xs px-2 py-1 rounded border ${
+                                  ipLocations[user.lastLoginIP] === '查询中...'
+                                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                                    : ipLocations[user.lastLoginIP].includes('失败')
+                                    ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
+                                    : 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
+                                }`}>
+                                  {ipLocations[user.lastLoginIP]}
+                                </div>
+                                {ipLocations[user.lastLoginIP].includes('失败') && (
+                                  <button
+                                    onClick={async () => {
+                                      if (user.lastLoginIP) {
+                                        console.log(`🔄 重新查询登录IP: ${user.lastLoginIP}`);
+                                        setIpLocations(prev => ({ ...prev, [user.lastLoginIP!]: '重新查询中...' }));
+                                        try {
+                                          const location = await getIpLocation(user.lastLoginIP);
+                                          setIpLocations(prev => ({ ...prev, [user.lastLoginIP!]: location }));
+                                          console.log(`✅ 登录IP重新查询成功: ${user.lastLoginIP} -> ${location}`);
+                                        } catch (error) {
+                                          console.error(`❌ 登录IP重新查询失败: ${user.lastLoginIP}`, error);
+                                          setIpLocations(prev => ({ ...prev, [user.lastLoginIP!]: '重试失败' }));
+                                        }
+                                      }
+                                    }}
+                                    className='text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors'
+                                    title='重试查询IP归属地'
+                                  >
+                                    重试
+                                  </button>
+                                )}
+                              </div>
+                            )}
                             {user.lastLoginTime && (
                               <div className='text-xs text-gray-500 dark:text-gray-400'>
                                 {new Date(user.lastLoginTime).toLocaleString('zh-CN')}

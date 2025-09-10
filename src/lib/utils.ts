@@ -426,6 +426,50 @@ export async function getIpLocation(ip: string): Promise<string> {
         }
         return null;
       }
+    },
+    {
+      name: 'ipgeolocation.io',
+      url: `https://api.ipgeolocation.io/ipgeo?apiKey=free&ip=${ip}`,
+      parser: (data: any) => {
+        if (data.country_name) {
+          const parts = [];
+          if (data.country_name) parts.push(data.country_name);
+          if (data.state_prov) parts.push(data.state_prov);
+          if (data.city) parts.push(data.city);
+          if (data.isp) parts.push(data.isp);
+          return parts.length > 0 ? parts.join(' ') : null;
+        }
+        return null;
+      }
+    },
+    {
+      name: 'ip2location.io',
+      url: `https://api.ip2location.io/?ip=${ip}&format=json`,
+      parser: (data: any) => {
+        if (data.country_name) {
+          const parts = [];
+          if (data.country_name) parts.push(data.country_name);
+          if (data.region_name) parts.push(data.region_name);
+          if (data.city_name) parts.push(data.city_name);
+          if (data.as) parts.push(data.as);
+          return parts.length > 0 ? parts.join(' ') : null;
+        }
+        return null;
+      }
+    },
+    {
+      name: 'freegeoip.app',
+      url: `https://freegeoip.app/json/${ip}`,
+      parser: (data: any) => {
+        if (data.country_name) {
+          const parts = [];
+          if (data.country_name) parts.push(data.country_name);
+          if (data.region_name) parts.push(data.region_name);
+          if (data.city) parts.push(data.city);
+          return parts.length > 0 ? parts.join(' ') : null;
+        }
+        return null;
+      }
     }
   ];
 

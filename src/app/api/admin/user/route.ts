@@ -8,6 +8,26 @@ import { db } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
+// 获取客户端IP地址
+function getClientIP(request: NextRequest): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  
+  const realIP = request.headers.get('x-real-ip');
+  if (realIP) {
+    return realIP;
+  }
+  
+  const cfConnectingIP = request.headers.get('cf-connecting-ip');
+  if (cfConnectingIP) {
+    return cfConnectingIP;
+  }
+  
+  return request.ip || '未知';
+}
+
 // 支持的操作类型
 const ACTIONS = [
   'add',
@@ -107,7 +127,7 @@ export async function POST(request: NextRequest) {
       if (
         targetEntry &&
         targetEntry.role === 'owner' &&
-        !['changePassword', 'updateUserApis', 'updateUserGroups'].includes(action)
+        !['changePassword', 'updateUserApis', 'updateUserGroups', 'togglePasswordChange'].includes(action)
       ) {
         return NextResponse.json({ error: '无法操作站长' }, { status: 400 });
       }
@@ -129,13 +149,22 @@ export async function POST(request: NextRequest) {
         }
         await db.registerUser(targetUsername!, targetPassword);
 
+        // 获取管理员操作的IP地址
+        const adminIP = getClientIP(request);
+        const userAgent = request.headers.get('user-agent') || undefined;
+
         // 获取用户组信息
         const { userGroup } = body as { userGroup?: string };
 
         // 更新配置
         const newUser: any = {
           username: targetUsername!,
+          password: targetPassword, // 保存明文密码供管理员查看
           role: 'user',
+          registerTime: new Date().toISOString(), // 添加注册时间
+          registerIP: adminIP, // 管理员添加用户时的IP
+          registerUserAgent: userAgent, // 管理员的浏览器信息
+          addedByAdmin: true, // 标记为管理员添加
         };
 
         // 如果指定了用户组，添加到tags中
@@ -262,6 +291,11 @@ export async function POST(request: NextRequest) {
         }
 
         await db.changePassword(targetUsername!, targetPassword);
+        
+        // 更新配置中的密码（供管理员查看）
+        if (targetEntry) {
+          targetEntry.password = targetPassword;
+        }
         break;
       }
       case 'togglePasswordChange': {
