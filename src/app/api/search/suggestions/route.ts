@@ -9,6 +9,8 @@ import { searchFromApi } from '@/lib/downstream';
 import { yellowWords } from '@/lib/yellow';
 
 export const runtime = 'nodejs';
+// 添加这一行来强制动态渲染，避免静态预渲染时访问 cookies 出错
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
