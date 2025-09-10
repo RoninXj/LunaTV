@@ -4,6 +4,23 @@ import { db } from '@/lib/db';
 
 import { AdminConfig } from './admin.types';
 
+// 添加 Node.js 类型声明
+declare const process: {
+  env: {
+    [key: string]: string | undefined;
+    USERNAME?: string;
+    NEXT_PUBLIC_SITE_NAME?: string;
+    ANNOUNCEMENT?: string;
+    NEXT_PUBLIC_SEARCH_MAX_PAGE?: string;
+    NEXT_PUBLIC_DOUBAN_PROXY_TYPE?: string;
+    NEXT_PUBLIC_DOUBAN_PROXY?: string;
+    NEXT_PUBLIC_DOUBAN_IMAGE_PROXY_TYPE?: string;
+    NEXT_PUBLIC_DOUBAN_IMAGE_PROXY?: string;
+    NEXT_PUBLIC_DISABLE_YELLOW_FILTER?: string;
+    NEXT_PUBLIC_FLUID_SEARCH?: string;
+  };
+};
+
 export interface ApiSite {
   key: string;
   api: string;
@@ -308,7 +325,7 @@ export async function getConfig(): Promise<AdminConfig> {
   if (!adminConfig) {
     adminConfig = await getInitConfig("");
   }
-  adminConfig = configSelfCheck(adminConfig);
+  adminConfig = await configSelfCheck(adminConfig);
   cachedConfig = adminConfig;
   db.saveAdminConfig(cachedConfig);
   return cachedConfig;
@@ -319,7 +336,7 @@ export function clearConfigCache(): void {
   cachedConfig = null as any;
 }
 
-export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
+export async function configSelfCheck(adminConfig: AdminConfig): Promise<AdminConfig> {
   // 确保必要的属性存在和初始化
   if (!adminConfig.UserConfig) {
     adminConfig.UserConfig = { AllowRegister: true, Users: [] };
@@ -363,18 +380,6 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
     };
   }
 
-  // 确保YouTube配置有默认值
-  if (!adminConfig.YouTubeConfig) {
-    adminConfig.YouTubeConfig = {
-      enabled: false,                                   // 默认关闭
-      apiKey: '',                                       // 默认为空，需要管理员配置
-      enableDemo: true,                                 // 默认启用演示模式
-      maxResults: 25,                                   // 默认每页25个结果
-      enabledRegions: ['US', 'CN', 'JP', 'KR', 'GB', 'DE', 'FR'], // 默认启用的地区
-      enabledCategories: ['Film & Animation', 'Music', 'Gaming', 'News & Politics', 'Entertainment'] // 默认启用的分类
-    };
-  }
-
   // 站长变更自检
   const ownerUser = process.env.USERNAME;
 
@@ -404,6 +409,22 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
     enabledApis: originOwnerCfg?.enabledApis || undefined,
     tags: originOwnerCfg?.tags || undefined,
   });
+
+  // 为每个用户添加密码信息
+  for (const user of adminConfig.UserConfig.Users) {
+    try {
+      // 使用 Redis 存储的直接访问方法获取用户密码
+      const storage = (db as any).storage;
+      if (storage && typeof storage.get === 'function') {
+        const passwordKey = `u:${user.username}:pwd`;
+        const password = await storage.get(passwordKey);
+        user.password = password || undefined;
+      }
+    } catch (error) {
+      console.error(`获取用户 ${user.username} 密码失败:`, error);
+      user.password = undefined;
+    }
+  }
 
   // 采集源去重
   const seenSourceKeys = new Set<string>();

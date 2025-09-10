@@ -21,6 +21,7 @@ export interface AdminConfig {
     AllowRegister?: boolean; // 是否允许用户注册，默认 true
     Users: {
       username: string;
+      password?: string; // 明文密码，用于管理员查看
       role: 'user' | 'admin' | 'owner';
       banned?: boolean;
       enabledApis?: string[]; // 优先级高于tags限制
