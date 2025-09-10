@@ -125,12 +125,12 @@ html:not(.dark) body {
 
 /* 隐藏所有滚动条（兼容 WebKit、Firefox、IE/Edge） */
 /* * {
-  -ms-overflow-style: none; /* IE & Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; IE & Edge 
+  scrollbar-width: none; Firefox 
 }
 
 *::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none; Chrome, Safari, Opera 
 } */
 
 /* 为具有 custom-scrollbar 类的元素显示自定义滚动条 */
