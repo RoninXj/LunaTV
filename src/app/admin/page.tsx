@@ -401,7 +401,6 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
   const [showDeleteUserModal, setShowDeleteUserModal] = useState(false);
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
   const [ipLocations, setIpLocations] = useState<Record<string, string>>({});
-  const [ipLocations, setIpLocations] = useState<Record<string, string>>({});
 
   // 当前登录用户名
   const currentUsername = getAuthInfoFromBrowserCookie()?.username || null;
