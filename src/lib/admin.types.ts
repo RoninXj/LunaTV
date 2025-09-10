@@ -25,6 +25,17 @@ export interface AdminConfig {
       banned?: boolean;
       enabledApis?: string[]; // 优先级高于tags限制
       tags?: string[]; // 多 tags 取并集限制
+      disablePasswordChange?: boolean; // 是否禁用修改密码
+      registerTime?: string; // 注册时间
+      registerIP?: string; // 注册IP地址
+      registerUserAgent?: string; // 注册时的浏览器信息
+      lastLoginTime?: string; // 最后登录时间
+      lastLoginIP?: string; // 最后登录IP
+      loginHistory?: {
+        ip: string;
+        time: string;
+        userAgent?: string;
+      }[]; // 登录历史记录
     }[];
     Tags?: {
       name: string;

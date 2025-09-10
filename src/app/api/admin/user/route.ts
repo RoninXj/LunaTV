@@ -21,6 +21,7 @@ const ACTIONS = [
   'userGroup',
   'updateUserGroups',
   'batchUpdateUserGroups',
+  'togglePasswordChange', // 添加禁止修改密码操作
 ] as const;
 
 export async function POST(request: NextRequest) {
@@ -249,6 +250,14 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        // 检查用户是否被禁止修改密码
+        if (targetEntry.disablePasswordChange) {
+          return NextResponse.json(
+            { error: '该用户已被禁止修改密码' },
+            { status: 403 }
+          );
+        }
+
         if (
           isTargetAdmin &&
           operatorRole !== 'owner' &&
@@ -452,6 +461,17 @@ export async function POST(request: NextRequest) {
         }
 
         break;
+      }
+      case 'togglePasswordChange': {
+        if (!targetEntry) {
+          return NextResponse.json({ error: '目标用户不存在' }, { status: 404 });
+        }
+        if (targetEntry.role === 'owner') {
+          return NextResponse.json({ error: '无法操作站长' }, { status: 400 });
+        }
+        targetEntry.disablePasswordChange = !targetEntry.disablePasswordChange;
+        await db.saveAdminConfig(adminConfig);
+        return NextResponse.json({ ok: true, disablePasswordChange: targetEntry.disablePasswordChange });
       }
       default:
         return NextResponse.json({ error: '未知操作' }, { status: 400 });

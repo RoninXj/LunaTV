@@ -6,6 +6,29 @@ import { db } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
+// 获取客户端IP地址
+function getClientIP(request: NextRequest): string {
+  // 优先级按照：代理服务器设置的头部 -> 直连IP
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    // x-forwarded-for 可能包含多个IP，取第一个（最原始的客户端IP）
+    return forwarded.split(',')[0].trim();
+  }
+  
+  const realIP = request.headers.get('x-real-ip');
+  if (realIP) {
+    return realIP;
+  }
+  
+  const cfConnectingIP = request.headers.get('cf-connecting-ip'); // Cloudflare
+  if (cfConnectingIP) {
+    return cfConnectingIP;
+  }
+  
+  // 如果都没有，返回连接IP（可能是代理服务器IP）
+  return request.ip || '未知';
+}
+
 // 读取存储类型环境变量，默认 localstorage
 const STORAGE_TYPE =
   (process.env.NEXT_PUBLIC_STORAGE_TYPE as
@@ -132,6 +155,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: '该用户名已被注册' }, { status: 400 });
       }
 
+      // 获取注册IP地址
+      const registerIP = getClientIP(req);
+      const userAgent = req.headers.get('user-agent') || undefined;
+      
       // 注册用户
       await db.registerUser(username, password);
 
@@ -140,6 +167,9 @@ export async function POST(req: NextRequest) {
       const newUser = {
         username: username,
         role: 'user' as const,
+        registerTime: new Date().toISOString(), // 添加注册时间
+        registerIP: registerIP, // 注册IP地址
+        registerUserAgent: userAgent, // 注册时的浏览器信息
       };
       
       config.UserConfig.Users.push(newUser);
