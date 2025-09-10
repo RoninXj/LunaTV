@@ -5465,7 +5465,7 @@ function AdminPageClient() {
       )}
     </PageLayout>
   );
-}
+};
 
 export default function AdminPage() {
   return (
