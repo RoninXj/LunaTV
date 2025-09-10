@@ -270,6 +270,9 @@ export async function POST(request: NextRequest) {
         }
 
         await db.changePassword(targetUsername!, targetPassword);
+        
+        // 更新配置中的密码信息，确保管理员页面能显示最新的密码
+        targetEntry.password = targetPassword;
         break;
       }
       case 'deleteUser': {

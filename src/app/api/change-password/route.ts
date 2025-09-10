@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
+import { clearConfigCache, getConfig } from '@/lib/config';
 import { db } from '@/lib/db';
 
 export const runtime = 'nodejs';
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 是否被禁止修改密码（通过 AdminConfig 开关）
-    const adminConfig = await db.getAdminConfig();
+    const adminConfig = await getConfig();
     const targetUser = adminConfig?.UserConfig.Users.find((u) => u.username === username);
     if (targetUser?.disablePasswordChange) {
       return NextResponse.json({ error: '该用户已被禁止修改密码' }, { status: 403 });
@@ -54,6 +55,13 @@ export async function POST(request: NextRequest) {
 
     // 修改密码
     await db.changePassword(username, newPassword);
+    
+    // 更新配置中的密码信息并清除缓存，确保管理员页面能显示最新的密码
+    if (targetUser) {
+      targetUser.password = newPassword;
+      await db.saveAdminConfig(adminConfig!);
+      clearConfigCache();
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

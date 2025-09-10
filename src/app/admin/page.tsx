@@ -1281,7 +1281,7 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                             <div>{user.username}</div>
                             <div className='flex items-center space-x-2'>
                               <span className='font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded border max-w-[120px] truncate'>
-                                {user.password || '********'}
+                                {user.password || '无密码'}
                               </span>
                               <button
                                 onClick={async () => {
