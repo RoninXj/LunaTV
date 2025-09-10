@@ -830,424 +830,263 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
 
   return (
     <div className='space-y-6'>
-      {/* 为整个用户配置区域添加滚动条容器 */}
-      <div 
-        className='force-scrollbar'
-        style={{
-          overflowX: 'auto',
-          overflowY: 'auto',
-          scrollbarWidth: 'thin',
-          msOverflowStyle: 'scrollbar',
-          maxHeight: 'calc(100vh - 100px)'
-        }}
-      >
-        {/* 用户注册设置 - 仅站长可见 */}
-        {role === 'owner' && (
-          <div>
-            <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
-              注册设置
-            </h4>
-            <div className='p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800'>
-              <div className='flex items-center justify-between'>
-                <div>
-                  <div className='font-medium text-gray-900 dark:text-gray-100'>
-                    允许用户注册
-                  </div>
-                  <div className='text-sm text-gray-600 dark:text-gray-400'>
-                    控制是否允许新用户通过注册页面自行注册账户
-                  </div>
-                </div>
-                <div className='flex items-center'>
-                  <button
-                    type="button"
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
-                      config.UserConfig.AllowRegister ? buttonStyles.toggleOn : buttonStyles.toggleOff
-                    }`}
-                    role="switch"
-                    aria-checked={config.UserConfig.AllowRegister}
-                    onClick={async () => {
-                      await withLoading('toggleAllowRegister', async () => {
-                        try {
-                          const response = await fetch('/api/admin/config', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              ...config,
-                              UserConfig: {
-                                ...config.UserConfig,
-                                AllowRegister: !config.UserConfig.AllowRegister
-                              }
-                            })
-                          });
-                          
-                          if (response.ok) {
-                            await refreshConfig();
-                            showAlert({
-                              type: 'success',
-                              title: '设置已更新',
-                              message: config.UserConfig.AllowRegister ? '已禁止用户注册' : '已允许用户注册',
-                              timer: 2000
-                            });
-                          } else {
-                            throw new Error('更新配置失败');
-                          }
-                        } catch (err) {
-                          showError(err instanceof Error ? err.message : '操作失败', showAlert);
-                        }
-                      });
-                    }}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={`pointer-events-none inline-block h-5 w-5 rounded-full ${buttonStyles.toggleThumb} shadow transform ring-0 transition duration-200 ease-in-out ${
-                        config.UserConfig.AllowRegister ? buttonStyles.toggleThumbOn : buttonStyles.toggleThumbOff
-                      }`}
-                    />
-                  </button>
-                  <span className='ml-3 text-sm font-medium text-gray-900 dark:text-gray-100'>
-                    {config.UserConfig.AllowRegister ? '开启' : '关闭'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 用户统计 */}
+      {/* 用户注册设置 - 仅站长可见 */}
+      {role === 'owner' && (
         <div>
           <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
-            用户统计
+            注册设置
           </h4>
-          <div className='p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800'>
-            <div className='text-2xl font-bold text-green-800 dark:text-green-300'>
-              {config.UserConfig.Users.length}
-            </div>
-            <div className='text-sm text-green-600 dark:text-green-400'>
-              总用户数
-            </div>
-          </div>
-        </div>
-
-        {/* 用户组管理 */}
-        <div>
-          <div className='flex items-center justify-between mb-3'>
-            <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-              用户组管理
-            </h4>
-            <button
-              onClick={() => {
-                setShowAddUserGroupForm(!showAddUserGroupForm);
-                if (showEditUserGroupForm) {
-                  setShowEditUserGroupForm(false);
-                  setEditingUserGroup(null);
-                }
-              }}
-              className={showAddUserGroupForm ? buttonStyles.secondary : buttonStyles.primary}
-            >
-              {showAddUserGroupForm ? '取消' : '添加用户组'}
-            </button>
-          </div>
-
-          {/* 用户组列表 */}
-          <div className='border border-gray-200 dark:border-gray-700 rounded-lg max-h-[20rem] overflow-y-auto overflow-x-auto relative'>
-            <table className='min-w-full divide-y divide-gray-200 dark:divide-gray-700'>
-              <thead className='bg-gray-50 dark:bg-gray-900 sticky top-0 z-10'>
-                <tr>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
-                    用户组名称
-                  </th>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
-                    可用视频源
-                  </th>
-                  <th className='px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
-                    操作
-                  </th>
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-gray-200 dark:divide-gray-700'>
-                {userGroups.map((group) => (
-                  <tr key={group.name} className='hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors'>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100'>
-                      {group.name}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <div className='flex items-center space-x-2'>
-                        <span className='text-sm text-gray-900 dark:text-gray-100'>
-                          {group.enabledApis && group.enabledApis.length > 0
-                            ? `${group.enabledApis.length} 个源`
-                            : '无限制'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2'>
-                      <button
-                        onClick={() => handleStartEditUserGroup(group)}
-                        disabled={isLoading(`userGroup_edit_${group.name}`)}
-                        className={`${buttonStyles.roundedPrimary} ${isLoading(`userGroup_edit_${group.name}`) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        编辑
-                      </button>
-                      <button
-                        onClick={() => handleDeleteUserGroup(group.name)}
-                        className={buttonStyles.roundedDanger}
-                      >
-                        删除
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {userGroups.length === 0 && (
-                  <tr>
-                    <td colSpan={3} className='px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400'>
-                      暂无用户组，请添加用户组来管理用户权限
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* 用户列表 */}
-        <div>
-          <div className='flex items-center justify-between mb-3'>
-            <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-              用户列表
-            </h4>
-            <div className='flex items-center space-x-2'>
-              {/* 批量操作按钮 */}
-              {selectedUsers.size > 0 && (
-                <>
-                  <div className='flex items-center space-x-3'>
-                    <span className='text-sm text-gray-600 dark:text-gray-400'>
-                      已选择 {selectedUsers.size} 个用户
-                    </span>
-                    <button
-                      onClick={() => setShowBatchUserGroupModal(true)}
-                      className={buttonStyles.primary}
-                    >
-                      批量设置用户组
-                    </button>
-                  </div>
-                  <div className='w-px h-6 bg-gray-300 dark:bg-gray-600'></div>
-                </>
-              )}
-              <button
-                onClick={() => {
-                  setShowAddUserForm(!showAddUserForm);
-                  if (showChangePasswordForm) {
-                    setShowChangePasswordForm(false);
-                    setChangePasswordUser({ username: '', password: '' });
-                  }
-                }}
-                className={showAddUserForm ? buttonStyles.secondary : buttonStyles.success}
-              >
-                {showAddUserForm ? '取消' : '添加用户'}
-              </button>
-            </div>
-          </div>
-
-          {/* 添加用户表单 */}
-          {showAddUserForm && (
-            <div className='mb-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700'>
-              <div className='space-y-4'>
-                <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-                  <input
-                    type='text'
-                    placeholder='用户名'
-                    value={newUser.username}
-                    onChange={(e) =>
-                      setNewUser((prev) => ({ ...prev, username: e.target.value }))
-                    }
-                    className='px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent'
-                  />
-                  <input
-                    type='password'
-                    placeholder='密码'
-                    value={newUser.password}
-                    onChange={(e) =>
-                      setNewUser((prev) => ({ ...prev, password: e.target.value }))
-                    }
-                    className='px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent'
-                  />
+          <div className='p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <div className='font-medium text-gray-900 dark:text-gray-100'>
+                  允许用户注册
                 </div>
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-                    用户组（可选）
-                  </label>
-                  <select
-                    value={newUser.userGroup}
-                    onChange={(e) =>
-                      setNewUser((prev) => ({ ...prev, userGroup: e.target.value }))
-                    }
-                    className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent'
-                  >
-                    <option value=''>无用户组（无限制）</option>
-                    {userGroups.map((group) => (
-                      <option key={group.name} value={group.name}>
-                        {group.name} ({group.enabledApis && group.enabledApis.length > 0 ? `${group.enabledApis.length} 个源` : '无限制'})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className='flex justify-end'>
-                  <button
-                    onClick={handleAddUser}
-                    disabled={!newUser.username || !newUser.password || isLoading('addUser')}
-                    className={!newUser.username || !newUser.password || isLoading('addUser') ? buttonStyles.disabled : buttonStyles.success}
-                  >
-                    添加用户
-                  </button>
+                <div className='text-sm text-gray-600 dark:text-gray-400'>
+                  控制是否允许新用户通过注册页面自行注册账户
                 </div>
               </div>
+              <div className='flex items-center'>
+                <button
+                  type="button"
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
+                    config.UserConfig.AllowRegister ? buttonStyles.toggleOn : buttonStyles.toggleOff
+                  }`}
+                  role="switch"
+                  aria-checked={config.UserConfig.AllowRegister}
+                  onClick={async () => {
+                    await withLoading('toggleAllowRegister', async () => {
+                      try {
+                        const response = await fetch('/api/admin/config', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            ...config,
+                            UserConfig: {
+                              ...config.UserConfig,
+                              AllowRegister: !config.UserConfig.AllowRegister
+                            }
+                          })
+                        });
+                        
+                        if (response.ok) {
+                          await refreshConfig();
+                          showAlert({
+                            type: 'success',
+                            title: '设置已更新',
+                            message: config.UserConfig.AllowRegister ? '已禁止用户注册' : '已允许用户注册',
+                            timer: 2000
+                          });
+                        } else {
+                          throw new Error('更新配置失败');
+                        }
+                      } catch (err) {
+                        showError(err instanceof Error ? err.message : '操作失败', showAlert);
+                      }
+                    });
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block h-5 w-5 rounded-full ${buttonStyles.toggleThumb} shadow transform ring-0 transition duration-200 ease-in-out ${
+                      config.UserConfig.AllowRegister ? buttonStyles.toggleThumbOn : buttonStyles.toggleThumbOff
+                    }`}
+                  />
+                </button>
+                <span className='ml-3 text-sm font-medium text-gray-900 dark:text-gray-100'>
+                  {config.UserConfig.AllowRegister ? '开启' : '关闭'}
+                </span>
+              </div>
             </div>
-          )}
-
-          {/* 用户列表 */}
-          <div className='border border-gray-200 dark:border-gray-700 rounded-lg max-h-[20rem] overflow-y-auto overflow-x-auto relative'>
-            <table className='min-w-full divide-y divide-gray-200 dark:divide-gray-700'>
-              <thead className='bg-gray-50 dark:bg-gray-900 sticky top-0 z-10'>
-                <tr>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
-                    <input
-                      type='checkbox'
-                      checked={selectedUsers.size === config.UserConfig.Users.length}
-                      onChange={(e) => handleSelectAllUsers(e.target.checked)}
-                      className='h-4 w-4 text-blue-600 dark:text-blue-500 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-600'
-                    />
-                  </th>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
-                    用户名
-                  </th>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
-                    密码
-                  </th>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
-                    角色
-                  </th>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
-                    用户组
-                  </th>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
-                    操作
-                  </th>
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-gray-200 dark:divide-gray-700'>
-                {config.UserConfig.Users.map((user) => (
-                  <tr key={user.username} className='hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors'>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <input
-                        type='checkbox'
-                        checked={selectedUsers.has(user.username)}
-                        onChange={(e) => handleSelectUser(user.username, e.target.checked)}
-                        className='h-4 w-4 text-blue-600 dark:text-blue-500 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-600'
-                      />
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100'>
-                      {user.username}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
-                      <div className='flex items-center space-x-2'>
-                        <span className='font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded border max-w-[120px] truncate'>
-                          {user.password || '********'}
-                        </span>
-                        {user.password && (
-                          <button
-                            onClick={async () => {
-                              if (user.password) {
-                                try {
-                                  await navigator.clipboard.writeText(user.password);
-                                  showAlert({
-                                    type: 'success',
-                                    title: '复制成功',
-                                    message: '密码已复制到剪贴板',
-                                    timer: 2000
-                                  });
-                                } catch (error) {
-                                  showAlert({
-                                    type: 'error',
-                                    title: '复制失败',
-                                    message: '无法访问剪贴板，请手动复制',
-                                    timer: 3000
-                                  });
-                                }
-                              }
-                            }}
-                            className='text-xs text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors'
-                            title='复制密码'
-                          >
-                            复制
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <span className='text-sm text-gray-900 dark:text-gray-100'>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <span className='text-sm text-gray-900 dark:text-gray-100'>
-                        {user.userGroup || '无'}
-                      </span>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2'>
-                      <button
-                        onClick={() => handleStartChangePassword(user.username)}
-                        className={buttonStyles.roundedPrimary}
-                      >
-                        修改密码
-                      </button>
-                      <button
-                        onClick={() => handleUserAction('ban', user.username)}
-                        className={buttonStyles.roundedDanger}
-                      >
-                        封禁
-                      </button>
-                      <button
-                        onClick={() => handleUserAction('unban', user.username)}
-                        className={buttonStyles.roundedPrimary}
-                      >
-                        解禁
-                      </button>
-                      <button
-                        onClick={() => handleUserAction('setAdmin', user.username)}
-                        className={buttonStyles.roundedPrimary}
-                      >
-                        设为管理员
-                      </button>
-                      <button
-                        onClick={() => handleUserAction('cancelAdmin', user.username)}
-                        className={buttonStyles.roundedPrimary}
-                      >
-                        取消管理员
-                      </button>
-                      <button
-                        onClick={() => handleUserAction('togglePasswordChange', user.username)}
-                        className={buttonStyles.roundedPrimary}
-                      >
-                        {user.forcePasswordChange ? '强制更改密码' : '取消强制更改密码'}
-                      </button>
-                      <button
-                        onClick={() => handleUserAction('deleteUser', user.username)}
-                        className={buttonStyles.roundedDanger}
-                      >
-                        删除
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {config.UserConfig.Users.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className='px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400'>
-                      暂无用户，请添加用户
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
           </div>
+        </div>
+      )}
+
+      {/* 用户统计 */}
+      <div>
+        <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
+          用户统计
+        </h4>
+        <div className='p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800'>
+          <div className='text-2xl font-bold text-green-800 dark:text-green-300'>
+            {config.UserConfig.Users.length}
+          </div>
+          <div className='text-sm text-green-600 dark:text-green-400'>
+            总用户数
+          </div>
+        </div>
+      </div>
+
+
+
+      {/* 用户组管理 */}
+      <div>
+        <div className='flex items-center justify-between mb-3'>
+          <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+            用户组管理
+          </h4>
+          <button
+            onClick={() => {
+              setShowAddUserGroupForm(!showAddUserGroupForm);
+              if (showEditUserGroupForm) {
+                setShowEditUserGroupForm(false);
+                setEditingUserGroup(null);
+              }
+            }}
+            className={showAddUserGroupForm ? buttonStyles.secondary : buttonStyles.primary}
+          >
+            {showAddUserGroupForm ? '取消' : '添加用户组'}
+          </button>
+        </div>
+
+        {/* 用户组列表 */}
+        <div className='border border-gray-200 dark:border-gray-700 rounded-lg max-h-[20rem] overflow-y-auto overflow-x-auto relative'>
+          <table className='min-w-full divide-y divide-gray-200 dark:divide-gray-700'>
+            <thead className='bg-gray-50 dark:bg-gray-900 sticky top-0 z-10'>
+              <tr>
+                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                  用户组名称
+                </th>
+                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                  可用视频源
+                </th>
+                <th className='px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'>
+                  操作
+                </th>
+              </tr>
+            </thead>
+            <tbody className='divide-y divide-gray-200 dark:divide-gray-700'>
+              {userGroups.map((group) => (
+                <tr key={group.name} className='hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors'>
+                  <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100'>
+                    {group.name}
+                  </td>
+                  <td className='px-6 py-4 whitespace-nowrap'>
+                    <div className='flex items-center space-x-2'>
+                      <span className='text-sm text-gray-900 dark:text-gray-100'>
+                        {group.enabledApis && group.enabledApis.length > 0
+                          ? `${group.enabledApis.length} 个源`
+                          : '无限制'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2'>
+                    <button
+                      onClick={() => handleStartEditUserGroup(group)}
+                      disabled={isLoading(`userGroup_edit_${group.name}`)}
+                      className={`${buttonStyles.roundedPrimary} ${isLoading(`userGroup_edit_${group.name}`) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      编辑
+                    </button>
+                    <button
+                      onClick={() => handleDeleteUserGroup(group.name)}
+                      className={buttonStyles.roundedDanger}
+                    >
+                      删除
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {userGroups.length === 0 && (
+                <tr>
+                  <td colSpan={3} className='px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400'>
+                    暂无用户组，请添加用户组来管理用户权限
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 用户列表 */}
+      <div>
+        <div className='flex items-center justify-between mb-3'>
+          <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+            用户列表
+          </h4>
+          <div className='flex items-center space-x-2'>
+            {/* 批量操作按钮 */}
+            {selectedUsers.size > 0 && (
+              <>
+                <div className='flex items-center space-x-3'>
+                  <span className='text-sm text-gray-600 dark:text-gray-400'>
+                    已选择 {selectedUsers.size} 个用户
+                  </span>
+                  <button
+                    onClick={() => setShowBatchUserGroupModal(true)}
+                    className={buttonStyles.primary}
+                  >
+                    批量设置用户组
+                  </button>
+                </div>
+                <div className='w-px h-6 bg-gray-300 dark:bg-gray-600'></div>
+              </>
+            )}
+            <button
+              onClick={() => {
+                setShowAddUserForm(!showAddUserForm);
+                if (showChangePasswordForm) {
+                  setShowChangePasswordForm(false);
+                  setChangePasswordUser({ username: '', password: '' });
+                }
+              }}
+              className={showAddUserForm ? buttonStyles.secondary : buttonStyles.success}
+            >
+              {showAddUserForm ? '取消' : '添加用户'}
+            </button>
+          </div>
+        </div>
+
+        {/* 添加用户表单 */}
+        {showAddUserForm && (
+          <div className='mb-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700'>
+            <div className='space-y-4'>
+              <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                <input
+                  type='text'
+                  placeholder='用户名'
+                  value={newUser.username}
+                  onChange={(e) =>
+                    setNewUser((prev) => ({ ...prev, username: e.target.value }))
+                  }
+                  className='px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent'
+                />
+                <input
+                  type='password'
+                  placeholder='密码'
+                  value={newUser.password}
+                  onChange={(e) =>
+                    setNewUser((prev) => ({ ...prev, password: e.target.value }))
+                  }
+                  className='px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent'
+                />
+              </div>
+              <div>
+                <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+                  用户组（可选）
+                </label>
+                <select
+                  value={newUser.userGroup}
+                  onChange={(e) =>
+                    setNewUser((prev) => ({ ...prev, userGroup: e.target.value }))
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent'
+                >
+                  <option value=''>无用户组（无限制）</option>
+                  {userGroups.map((group) => (
+                    <option key={group.name} value={group.name}>
+                      {group.name} ({group.enabledApis && group.enabledApis.length > 0 ? `${group.enabledApis.length} 个源` : '无限制'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className='flex justify-end'>
+                <button
+                  onClick={handleAddUser}
+                  disabled={!newUser.username || !newUser.password || isLoading('addUser')}
+                  className={!newUser.username || !newUser.password || isLoading('addUser') ? buttonStyles.disabled : buttonStyles.success}
+                >
                   {isLoading('addUser') ? '添加中...' : '添加'}
                 </button>
               </div>
@@ -1339,12 +1178,6 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                   scope='col'
                   className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
                 >
-                  密码
-                </th>
-                <th
-                  scope='col'
-                  className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
-                >
                   角色
                 </th>
                 <th
@@ -1370,15 +1203,6 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                   scope='col'
                   className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
                   style={{ minWidth: '200px' }}
-                >
-                  最后登录IP地址
-                </th>
-                <th
-                  scope='col'
-                  className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
-                >
-                  操作
-                </th>
                 >
                   登录IP地址
                 </th>
@@ -1563,122 +1387,6 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                                         }
                                       }
                                     }}
-                        <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100'>
-                          {user.username}
-                        </td>
-                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
-                          <div className='flex items-center space-x-2'>
-                            <span className='font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded border max-w-[120px] truncate'>
-                              {user.password || '********'}
-                            </span>
-                            {user.password && (
-                              <button
-                                onClick={async () => {
-                                  if (user.password) {
-                                    try {
-                                      await navigator.clipboard.writeText(user.password);
-                                      showAlert({
-                                        type: 'success',
-                                        title: '复制成功',
-                                        message: '密码已复制到剪贴板',
-                                        timer: 2000
-                                      });
-                                    } catch (error) {
-                                      showAlert({
-                                        type: 'error',
-                                        title: '复制失败',
-                                        message: '无法访问剪贴板，请手动复制',
-                                        timer: 3000
-                                      });
-                                    }
-                                  }
-                                }}
-                                className='text-xs text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors'
-                                title='复制密码'
-                              >
-                                复制
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                        <td className='px-6 py-4 whitespace-nowrap'>
-                          <span
-                            className={`px-2 py-1 text-xs rounded-full ${user.role === 'owner'
-                              ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300'
-                              : user.role === 'admin'
-                                ? 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                              }`}
-                          >
-                            {user.role === 'owner'
-                              ? '站长'
-                              : user.role === 'admin'
-                                ? '管理员'
-                                : '普通用户'}
-                          </span>
-                        </td>
-                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
-                          <div className='space-y-1'>
-                            <div className='flex items-center space-x-2'>
-                              <span className='font-mono text-xs bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded border'>
-                                {user.registerIP || '从未注册'}
-                              </span>
-                              {user.registerIP && (
-                                <button
-                                  onClick={async () => {
-                                    if (user.registerIP) {
-                                      try {
-                                        await navigator.clipboard.writeText(user.registerIP);
-                                        showAlert({
-                                          type: 'success',
-                                          title: '复制成功',
-                                          message: 'IP地址已复制到剪贴板',
-                                          timer: 2000
-                                        });
-                                      } catch (error) {
-                                        showAlert({
-                                          type: 'error',
-                                          title: '复制失败',
-                                          message: '无法访问剪贴板，请手动复制',
-                                          timer: 3000
-                                        });
-                                      }
-                                    }
-                                  }}
-                                  className='text-xs text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors'
-                                  title='复制IP地址'
-                                >
-                                  复制
-                                </button>
-                              )}
-                            </div>
-                            {user.registerIP && ipLocations[user.registerIP] && (
-                              <div className='flex items-center space-x-2'>
-                                <div className={`text-xs px-2 py-1 rounded border ${
-                                  ipLocations[user.registerIP] === '查询中...'
-                                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
-                                    : ipLocations[user.registerIP].includes('失败')
-                                    ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
-                                    : 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-                                }`}>
-                                  {ipLocations[user.registerIP]}
-                                </div>
-                                {ipLocations[user.registerIP].includes('失败') && (
-                                  <button
-                                    onClick={async () => {
-                                      if (user.registerIP) {
-                                        console.log(`🔄 重新查询注册IP: ${user.registerIP}`);
-                                        setIpLocations(prev => ({ ...prev, [user.registerIP!]: '重新查询中...' }));
-                                        try {
-                                          const location = await getIpLocation(user.registerIP);
-                                          setIpLocations(prev => ({ ...prev, [user.registerIP!]: location }));
-                                          console.log(`✅ 注册IP重新查询成功: ${user.registerIP} -> ${location}`);
-                                        } catch (error) {
-                                          console.error(`❌ 注册IP重新查询失败: ${user.registerIP}`, error);
-                                          setIpLocations(prev => ({ ...prev, [user.registerIP!]: '重试失败' }));
-                                        }
-                                      }
-                                    }}
                                     className='text-xs text-purple-500 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 transition-colors'
                                     title='重试查询注册IP归属地'
                                   >
@@ -1786,8 +1494,6 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                                 </div>
                               </details>
                             )}
-                          </div>
-                        </td>
                           </div>
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap'>
