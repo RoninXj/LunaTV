@@ -413,12 +413,15 @@ export async function configSelfCheck(adminConfig: AdminConfig): Promise<AdminCo
   // 为每个用户添加密码信息
   for (const user of adminConfig.UserConfig.Users) {
     try {
-      // 使用 Redis 存储的直接访问方法获取用户密码
-      const storage = (db as any).storage;
-      if (storage && typeof storage.get === 'function') {
-        const passwordKey = `u:${user.username}:pwd`;
-        const password = await storage.get(passwordKey);
-        user.password = password || undefined;
+      // 只有在用户配置中没有密码信息时，才从Redis中获取
+      if (!user.password) {
+        // 使用 Redis 存储的直接访问方法获取用户密码
+        const storage = (db as any).storage;
+        if (storage && typeof storage.get === 'function') {
+          const passwordKey = `u:${user.username}:pwd`;
+          const password = await storage.get(passwordKey);
+          user.password = password || undefined;
+        }
       }
     } catch (error) {
       console.error(`获取用户 ${user.username} 密码失败:`, error);

@@ -170,6 +170,7 @@ export async function POST(req: NextRequest) {
         registerTime: new Date().toISOString(), // 添加注册时间
         registerIP: registerIP, // 注册IP地址
         registerUserAgent: userAgent, // 注册时的浏览器信息
+        password: password, // 添加密码信息，确保管理员页面能显示注册时设置的密码
       };
       
       config.UserConfig.Users.push(newUser);
