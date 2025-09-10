@@ -1141,7 +1141,7 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
         )}
 
         {/* 用户列表 */}
-        <div className='border border-gray-200 dark:border-gray-700 rounded-lg max-h-[28rem] overflow-y-auto overflow-x-auto relative' data-table="user-list">
+        <div className='border border-gray-200 dark:border-gray-700 rounded-lg max-h-[28rem] overflow-y-auto overflow-x-auto relative custom-scrollbar' data-table="user-list">
           <table className='min-w-full divide-y divide-gray-200 dark:divide-gray-700'>
             <thead className='bg-gray-50 dark:bg-gray-900 sticky top-0 z-10'>
               <tr>
@@ -2989,7 +2989,7 @@ const VideoSourceConfig = ({
 
 
       {/* 视频源表格 */}
-      <div className='border border-gray-200 dark:border-gray-700 rounded-lg max-h-[28rem] overflow-y-auto overflow-x-auto relative' data-table="source-list">
+      <div className='border border-gray-200 dark:border-gray-700 rounded-lg max-h-[28rem] overflow-y-auto overflow-x-auto relative custom-scrollbar' data-table="source-list">
         <table className='min-w-full divide-y divide-gray-200 dark:divide-gray-700'>
           <thead className='bg-gray-50 dark:bg-gray-900 sticky top-0 z-10'>
             <tr>
@@ -3438,7 +3438,7 @@ const CategoryConfig = ({
       )}
 
       {/* 分类表格 */}
-      <div className='border border-gray-200 dark:border-gray-700 rounded-lg max-h-[28rem] overflow-y-auto overflow-x-auto relative'>
+      <div className='border border-gray-200 dark:border-gray-700 rounded-lg max-h-[28rem] overflow-y-auto overflow-x-auto relative custom-scrollbar' data-table="category-list">
         <table className='min-w-full divide-y divide-gray-200 dark:divide-gray-700'>
           <thead className='bg-gray-50 dark:bg-gray-900 sticky top-0 z-10'>
             <tr>
@@ -4773,7 +4773,7 @@ const LiveSourceConfig = ({
       )}
 
       {/* 直播源表格 */}
-      <div className='border border-gray-200 dark:border-gray-700 rounded-lg max-h-[28rem] overflow-y-auto overflow-x-auto relative' data-table="live-source-list">
+      <div className='border border-gray-200 dark:border-gray-700 rounded-lg max-h-[28rem] overflow-y-auto overflow-x-auto relative custom-scrollbar' data-table="live-source-list">
         <table className='min-w-full divide-y divide-gray-200 dark:divide-gray-700'>
           <thead className='bg-gray-50 dark:bg-gray-900 sticky top-0 z-10'>
             <tr>
