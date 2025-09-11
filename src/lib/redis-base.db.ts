@@ -312,6 +312,15 @@ export abstract class BaseRedisStorage implements IStorage {
     if (skipConfigKeys.length > 0) {
       await this.withRetry(() => this.client.del(skipConfigKeys));
     }
+    
+    // 删除可能存在的其他用户相关键
+    const userPattern = `u:${userName}:*`;
+    const userKeys = await this.withRetry(() =>
+      this.client.keys(userPattern)
+    );
+    if (userKeys.length > 0) {
+      await this.withRetry(() => this.client.del(userKeys));
+    }
   }
 
   // ---------- 搜索历史 ----------
