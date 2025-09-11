@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthInfoFromCookie } from '@/lib/auth';
 import { getConfig } from '@/lib/config';
 import { db } from '@/lib/db';
+import { clearYouTubeSearchCache } from '@/lib/youtube-cache';
 
 export const runtime = 'nodejs';
 
@@ -37,7 +38,7 @@ const mockSearchResults = [
   {
     id: { videoId: 'dQw4w9WgXcQ' },
     snippet: {
-      title: 'Rick Astley - Never Gonna Give You Up (Official Video)',
+      title: 'Never Gonna Give You Up',
       description: 'The official video for "Never Gonna Give You Up" by Rick Astley',
       thumbnails: {
         medium: {
@@ -54,7 +55,7 @@ const mockSearchResults = [
   {
     id: { videoId: '9bZkp7q19f0' },
     snippet: {
-      title: 'PSY - GANGNAM STYLE(강남스타일) M/V',
+      title: 'GANGNAM STYLE',
       description: 'PSY - GANGNAM STYLE(강남스타일) M/V',
       thumbnails: {
         medium: {
@@ -71,7 +72,7 @@ const mockSearchResults = [
   {
     id: { videoId: 'kJQP7kiw5Fk' },
     snippet: {
-      title: 'Luis Fonsi - Despacito ft. Daddy Yankee',
+      title: 'Despacito',
       description: 'Luis Fonsi - Despacito ft. Daddy Yankee',
       thumbnails: {
         medium: {
@@ -88,7 +89,7 @@ const mockSearchResults = [
   {
     id: { videoId: 'fJ9rUzIMcZQ' },
     snippet: {
-      title: 'Queen – Bohemian Rhapsody (Official Video Remastered)',
+      title: 'Bohemian Rhapsody',
       description: 'Queen – Bohemian Rhapsody (Official Video Remastered)',
       thumbnails: {
         medium: {
@@ -100,6 +101,40 @@ const mockSearchResults = [
       channelTitle: 'Queen Official',
       publishedAt: '2008-08-01T14:54:09Z',
       channelId: 'UCwK2Grm574W1u-sBzLikldQ'
+    }
+  },
+  {
+    id: { videoId: 'OPf0YbXqDm0' },
+    snippet: {
+      title: 'Uptown Funk',
+      description: 'Mark Ronson - Uptown Funk ft. Bruno Mars',
+      thumbnails: {
+        medium: {
+          url: 'https://i.ytimg.com/vi/OPf0YbXqDm0/mqdefault.jpg',
+          width: 320,
+          height: 180
+        }
+      },
+      channelTitle: 'Mark Ronson',
+      publishedAt: '2015-01-20T16:00:00Z',
+      channelId: 'UCqC9s1NAkvPidFpGBewPs5w'
+    }
+  },
+  {
+    id: { videoId: '09R8_2nJtjg' },
+    snippet: {
+      title: 'Happy',
+      description: 'Pharrell Williams - Happy',
+      thumbnails: {
+        medium: {
+          url: 'https://i.ytimg.com/vi/09R8_2nJtjg/mqdefault.jpg',
+          width: 320,
+          height: 180
+        }
+      },
+      channelTitle: 'Pharrell Williams',
+      publishedAt: '2014-06-08T16:00:00Z',
+      channelId: 'UCoY1B2j6F5aO4gJX135kX5Q'
     }
   }
 ];
@@ -172,37 +207,71 @@ export async function GET(request: NextRequest) {
 
     // 如果启用演示模式或没有配置API Key，返回模拟数据
     if (youtubeConfig.enableDemo || !youtubeConfig.apiKey) {
-      // 根据内容类型过滤模拟结果
+      // 根据搜索关键词过滤和定制模拟结果
       let filteredResults = [...mockSearchResults];
       
+      // 如果有搜索关键词，根据关键词调整模拟结果的标题
+      if (query && query.trim()) {
+        const trimmedQuery = query.trim().toLowerCase();
+        
+        // 根据搜索关键词定制模拟结果标题
+        filteredResults = filteredResults.map(video => {
+          // 检查视频标题是否与搜索关键词相关
+          const isRelevant = video.snippet.title.toLowerCase().includes(trimmedQuery) || 
+                             video.snippet.channelTitle.toLowerCase().includes(trimmedQuery);
+          
+          // 如果相关，保持原样；如果不相关，将搜索关键词添加到标题前
+          const title = isRelevant 
+            ? video.snippet.title 
+            : `${query} - ${video.snippet.title}`;
+          
+          return {
+            ...video,
+            snippet: {
+              ...video.snippet,
+              title: title
+            }
+          };
+        });
+        
+        // 进一步过滤，只保留与搜索关键词相关的视频
+        filteredResults = filteredResults.filter(video => {
+          const title = video.snippet.title.toLowerCase();
+          const channel = video.snippet.channelTitle.toLowerCase();
+          const description = video.snippet.description.toLowerCase();
+          
+          // 检查标题、频道名或描述中是否包含搜索关键词
+          return title.includes(trimmedQuery) || 
+                 channel.includes(trimmedQuery) || 
+                 description.includes(trimmedQuery);
+        });
+      }
+      
+      // 根据内容类型进一步过滤
       if (contentType !== 'all') {
-        // 简单的内容类型过滤逻辑（基于标题关键词）
+        // 内容类型过滤逻辑（基于标题关键词）
         const typeFilters = {
-          music: ['music', 'song', 'MV', 'audio'],
-          movie: ['movie', 'film', 'video'],
-          educational: ['tutorial', 'guide', 'how'],
-          gaming: ['game', 'gaming'],
-          sports: ['sports', 'match'],
-          news: ['news', 'report']
+          music: ['music', 'song', 'mv', 'audio', 'official'],
+          movie: ['movie', 'film', 'trailer', 'cinema'],
+          educational: ['tutorial', 'guide', 'how', 'learn', 'education'],
+          gaming: ['game', 'gaming', 'playthrough', 'review'],
+          sports: ['sports', 'football', 'basketball', 'soccer', 'match'],
+          news: ['news', 'report', 'breaking', 'today', 'latest']
         };
         
         const filterKeywords = typeFilters[contentType as keyof typeof typeFilters] || [];
         if (filterKeywords.length > 0) {
           filteredResults = filteredResults.filter(video => 
             filterKeywords.some(keyword => 
-              video.snippet.title.toLowerCase().includes(keyword)
+              video.snippet.title.toLowerCase().includes(keyword) ||
+              video.snippet.description.toLowerCase().includes(keyword) ||
+              video.snippet.channelTitle.toLowerCase().includes(keyword)
             )
           );
         }
       }
       
-      const finalResults = filteredResults.slice(0, maxResults).map(video => ({
-        ...video,
-        snippet: {
-          ...video.snippet,
-          title: `${query} - ${video.snippet.title}`, // 模拟搜索匹配
-        }
-      }));
+      const finalResults = filteredResults.slice(0, maxResults);
       
       const responseData = {
         success: true,
@@ -287,10 +356,28 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
     
+    // 过滤掉与搜索关键词不相关的视频
+    let filteredVideos = data.items || [];
+    
+    // 如果有搜索关键词，进一步过滤结果
+    if (query.trim()) {
+      const trimmedQuery = query.trim().toLowerCase();
+      filteredVideos = filteredVideos.filter((video: any) => {
+        const title = (video.snippet?.title || '').toLowerCase();
+        const channel = (video.snippet?.channelTitle || '').toLowerCase();
+        const description = (video.snippet?.description || '').toLowerCase();
+        
+        // 检查标题、频道名或描述中是否包含搜索关键词
+        return title.includes(trimmedQuery) || 
+               channel.includes(trimmedQuery) || 
+               description.includes(trimmedQuery);
+      });
+    }
+    
     const responseData = {
       success: true,
-      videos: data.items || [],
-      total: data.pageInfo?.totalResults || 0,
+      videos: filteredVideos,
+      total: filteredVideos.length,
       query: query,
       source: 'youtube'
     };

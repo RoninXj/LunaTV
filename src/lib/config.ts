@@ -379,6 +379,18 @@ export async function configSelfCheck(adminConfig: AdminConfig): Promise<AdminCo
       maxTokens: 1000                                  // 默认最大token数
     };
   }
+  
+  // 确保YouTube配置有默认值
+  if (!adminConfig.YouTubeConfig) {
+    adminConfig.YouTubeConfig = {
+      enabled: true,                                    // 默认启用
+      apiKey: '',                                       // 默认为空，需要管理员配置
+      enableDemo: true,                                 // 默认启用演示模式
+      maxResults: 25,                                   // 默认每页25个结果
+      enabledRegions: [],                               // 默认不限制地区
+      enabledCategories: []                             // 默认不限制分类
+    };
+  }
 
   // 站长变更自检
   const ownerUser = process.env.USERNAME;
