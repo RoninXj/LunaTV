@@ -68,7 +68,7 @@ export default function NetDiskSearchResults({ results, loading, error, total, s
 
   // 过滤与查询关键词相关的资源
   const relevantResults = useMemo(() => {
-    if (!results || !searchQuery) return results;
+    if (!results || !searchQuery) return results ? { results, total: 0 } : null;
     
     const filtered: { [key: string]: NetDiskLink[] } = {};
     let totalCount = 0;
@@ -104,11 +104,17 @@ export default function NetDiskSearchResults({ results, loading, error, total, s
   };
 
   // 筛选结果
-  const filteredResults = relevantResults?.results && filterMode === 'selected' && selectedFilter.length > 0
-    ? Object.fromEntries(
+  const filteredResults = useMemo(() => {
+    if (!relevantResults) return null;
+    
+    if (filterMode === 'selected' && selectedFilter.length > 0) {
+      return Object.fromEntries(
         Object.entries(relevantResults.results).filter(([type]) => selectedFilter.includes(type))
-      )
-    : relevantResults?.results;
+      );
+    }
+    
+    return relevantResults.results;
+  }, [relevantResults, filterMode, selectedFilter]);
 
   // 快速跳转到指定网盘类型
   const scrollToCloudType = (type: string) => {
@@ -128,13 +134,15 @@ export default function NetDiskSearchResults({ results, loading, error, total, s
   };
 
   // 获取有结果的网盘类型统计
-  const availableTypes = filteredResults 
-    ? Object.entries(filteredResults).map(([type, links]) => ({
-        type,
-        count: links.length,
-        info: CLOUD_TYPES[type as keyof typeof CLOUD_TYPES] || CLOUD_TYPES.others
-      })).sort((a, b) => b.count - a.count) // 按数量降序排列
-    : [];
+  const availableTypes = useMemo(() => {
+    if (!filteredResults) return [];
+    
+    return Object.entries(filteredResults).map(([type, links]) => ({
+      type,
+      count: links.length,
+      info: CLOUD_TYPES[type as keyof typeof CLOUD_TYPES] || CLOUD_TYPES.others
+    })).sort((a, b) => b.count - a.count); // 按数量降序排列
+  }, [filteredResults]);
 
   if (loading) {
     return (
@@ -159,7 +167,7 @@ export default function NetDiskSearchResults({ results, loading, error, total, s
               </svg>
             ) : (
               <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM8.707 7.293a1 1 0 0 0-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 0 0 1.414-1.414L11.414 10l1.293-1.293a1 1 0 0 0-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM8.707 7.293a1 1 0 0 0-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
             )}
           </div>
@@ -335,7 +343,7 @@ export default function NetDiskSearchResults({ results, loading, error, total, s
       </div>
 
       {/* 按网盘类型分组展示 */}
-      {Object.entries(filteredResults || {}).map(([type, links]) => {
+      {filteredResults && Object.entries(filteredResults).map(([type, links]) => {
         const cloudType = CLOUD_TYPES[type as keyof typeof CLOUD_TYPES] || CLOUD_TYPES.others;
         
         return (
@@ -358,7 +366,6 @@ export default function NetDiskSearchResults({ results, loading, error, total, s
               {links.map((link, index) => {
                 const linkKey = `${type}-${index}`;
                 const isPasswordVisible = visiblePasswords[linkKey];
-                const isCopied = copiedItems[linkKey];
 
                 return (
                   <div key={index} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
