@@ -5231,8 +5231,7 @@ function AdminPageClient() {
       setTimeout(() => setSuccess(false), 3000);
 
       // 重新加载配置
-      const newConfig = await fetchConfig();
-      setConfig(newConfig);
+      await fetchConfig();
     } catch (err) {
       console.error('保存配置时出错:', err);
       setError(err instanceof Error ? err.message : '保存配置时发生未知错误');
