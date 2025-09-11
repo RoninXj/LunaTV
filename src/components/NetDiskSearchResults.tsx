@@ -41,6 +41,14 @@ export default function NetDiskSearchResults({ results, loading, error, total }:
   const [selectedFilter, setSelectedFilter] = useState<string[]>([]);
   const [filterMode, setFilterMode] = useState<'all' | 'selected'>('all');
 
+  // 添加快速跳转到指定网盘类型的函数
+  const scrollToCloudType = (type: string) => {
+    const element = document.getElementById(`cloud-type-${type}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   const togglePasswordVisibility = (key: string) => {
     setVisiblePasswords(prev => ({ ...prev, [key]: !prev[key] }));
   };
