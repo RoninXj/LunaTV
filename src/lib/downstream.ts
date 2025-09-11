@@ -73,7 +73,7 @@ async function searchWithCache(
   if (cached) {
     if (cached.status === 'ok') {
       // 对缓存结果也进行相关性过滤
-      const relevantResults = cached.data.filter(result => isResultRelevant(result, query));
+      const relevantResults = cached.data.filter((result: SearchResult) => isResultRelevant(result, query));
       return { results: relevantResults, pageCount: cached.pageCount };
     } else {
       return { results: [] };
