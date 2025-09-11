@@ -49,6 +49,17 @@ export default function NetDiskSearchResults({ results, loading, error, total }:
     }
   };
 
+  // 添加切换筛选标签的函数
+  const toggleFilterTag = (type: string) => {
+    setSelectedFilter(prev => {
+      if (prev.includes(type)) {
+        return prev.filter(t => t !== type);
+      } else {
+        return [...prev, type];
+      }
+    });
+  };
+
   const togglePasswordVisibility = (key: string) => {
     setVisiblePasswords((prev: { [key: string]: boolean }) => ({ ...prev, [key]: !prev[key] }));
   };
