@@ -377,9 +377,53 @@ export abstract class BaseRedisStorage implements IStorage {
   }
 
   async setAdminConfig(config: AdminConfig): Promise<void> {
-    await this.withRetry(() =>
-      this.client.set(this.adminConfigKey(), JSON.stringify(config))
-    );
+    await this.withRetry(async () => {
+      // 使用乐观锁机制避免并发写入冲突
+      const maxRetries = 3;
+      let retries = 0;
+      
+      while (retries < maxRetries) {
+        try {
+          // 使用 WATCH 命令监视配置键
+          await this.client.watch(this.adminConfigKey());
+          
+          // 获取当前配置（可选，用于比较）
+          const currentConfig = await this.client.get(this.adminConfigKey());
+          
+          // 开始事务
+          const multi = this.client.multi();
+          multi.set(this.adminConfigKey(), JSON.stringify(config));
+          
+          // 执行事务
+          const result = await multi.exec();
+          
+          // 如果事务执行成功，result 不为 null
+          if (result !== null) {
+            return; // 成功设置，退出循环
+          }
+          
+          // 如果事务执行失败（被其他操作打断），会返回 null，需要重试
+          retries++;
+          if (retries >= maxRetries) {
+            throw new Error('无法更新管理员配置，达到最大重试次数');
+          }
+          
+          // 等待一段时间后重试
+          await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
+        } catch (err) {
+          // 取消 WATCH
+          await this.client.unwatch().catch(() => {});
+          
+          retries++;
+          if (retries >= maxRetries) {
+            throw err; // 达到最大重试次数，抛出错误
+          }
+          
+          // 等待一段时间后重试
+          await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
+        }
+      }
+    });
   }
 
   // ---------- 跳过片头片尾配置 ----------

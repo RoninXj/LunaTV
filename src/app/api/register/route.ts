@@ -162,27 +162,53 @@ export async function POST(req: NextRequest) {
       // 注册用户
       await db.registerUser(username, password);
 
-      // 清除配置缓存，确保获取到最新的配置
-      clearConfigCache();
+      // 使用原子操作更新配置，避免并发冲突
+      let retryCount = 0;
+      const maxRetries = 3;
       
-      // 重新获取配置来添加用户
-      const config = await getConfig();
-      const newUser = {
-        username: username,
-        role: 'user' as const,
-        registerTime: new Date().toISOString(), // 添加注册时间
-        registerIP: registerIP, // 注册IP地址
-        registerUserAgent: userAgent, // 注册时的浏览器信息
-        password: password, // 添加密码信息，确保管理员页面能显示注册时设置的密码
-      };
-      
-      config.UserConfig.Users.push(newUser);
-      
-      // 保存更新后的配置
-      await db.saveAdminConfig(config);
-      
-      // 清除缓存，确保下次获取配置时是最新的
-      clearConfigCache();
+      while (retryCount < maxRetries) {
+        try {
+          // 清除配置缓存，确保获取到最新的配置
+          clearConfigCache();
+          
+          // 重新获取配置来添加用户
+          const config = await getConfig();
+          
+          // 检查用户是否已经存在于配置中（防止重复添加）
+          const userExistsInConfig = config.UserConfig.Users.some(u => u.username === username);
+          if (userExistsInConfig) {
+            // 用户已经存在，跳出循环
+            break;
+          }
+          
+          const newUser = {
+            username: username,
+            role: 'user' as const,
+            registerTime: new Date().toISOString(), // 添加注册时间
+            registerIP: registerIP, // 注册IP地址
+            registerUserAgent: userAgent, // 注册时的浏览器信息
+            password: password, // 添加密码信息，确保管理员页面能显示注册时设置的密码
+          };
+          
+          config.UserConfig.Users.push(newUser);
+          
+          // 保存更新后的配置
+          await db.saveAdminConfig(config);
+          
+          // 清除缓存，确保下次获取配置时是最新的
+          clearConfigCache();
+          
+          // 成功更新配置，跳出循环
+          break;
+        } catch (err) {
+          retryCount++;
+          if (retryCount >= maxRetries) {
+            throw err;
+          }
+          // 等待一段时间后重试
+          await new Promise(resolve => setTimeout(resolve, 100 * retryCount));
+        }
+      }
 
       // 注册成功后自动登录
       const response = NextResponse.json({ 
