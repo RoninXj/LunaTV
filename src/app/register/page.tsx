@@ -180,10 +180,8 @@ function RegisterPageClient() {
           <ThemeToggle />
         </div>
         <div className='relative z-10 w-full max-w-md rounded-3xl bg-gradient-to-b from-white/90 via-white/70 to-white/40 dark:from-zinc-900/90 dark:via-zinc-900/70 dark:to-zinc-900/40 backdrop-blur-xl shadow-2xl p-10 dark:border dark:border-zinc-800'>
-          <h1 className='text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-blue-600 tracking-tight text-center drop-shadow-sm group'>
-            <span className='group-hover:scale-105 transition-transform duration-200'>
-              {siteName}
-            </span>
+          <h1 className='text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-blue-600 tracking-tight text-center drop-shadow-sm hover:scale-105 transition-transform duration-200'>
+            {siteName}
           </h1>
           <div className='text-center space-y-6'>
             <div className='flex items-center justify-center mb-4'>
@@ -217,10 +215,8 @@ function RegisterPageClient() {
         <ThemeToggle />
       </div>
       <div className='relative z-10 w-full max-w-md rounded-3xl bg-gradient-to-b from-white/90 via-white/70 to-white/40 dark:from-zinc-900/90 dark:via-zinc-900/70 dark:to-zinc-900/40 backdrop-blur-xl shadow-2xl p-10 dark:border dark:border-zinc-800'>
-        <h1 className='text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-blue-600 tracking-tight text-center drop-shadow-sm group'>
-          <span className='group-hover:scale-105 transition-transform duration-200'>
-            {siteName}
-          </span>
+        <h1 className='text-3xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-blue-600 tracking-tight text-center drop-shadow-sm hover:scale-105 transition-transform duration-200'>
+          {siteName}
         </h1>
         <p className='text-center text-gray-600 dark:text-gray-400 text-sm mb-8'>
           注册新账户
