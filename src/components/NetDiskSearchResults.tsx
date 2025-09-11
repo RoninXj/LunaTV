@@ -64,30 +64,15 @@ export default function NetDiskSearchResults({ results, loading, error, total }:
       )
     : results;
 
-  // 快速跳转到指定网盘类型
-  const scrollToCloudType = (type: string) => {
-    const element = document.getElementById(`cloud-type-${type}`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
-  // 切换筛选标签
-  const toggleFilterTag = (type: string) => {
-    setSelectedFilter(prev => 
-      prev.includes(type) 
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
-    );
-  };
-
-  // 获取有结果的网盘类型统计
+  // 获取有结果的网盘类型统计（过滤掉空的类型）
   const availableTypes = results 
-    ? Object.entries(results).map(([type, links]) => ({
-        type,
-        count: links.length,
-        info: CLOUD_TYPES[type as keyof typeof CLOUD_TYPES] || CLOUD_TYPES.others
-      })).sort((a, b) => b.count - a.count) // 按数量降序排列
+    ? Object.entries(results)
+        .filter(([_, links]) => links.length > 0) // 只显示有结果的类型
+        .map(([type, links]) => ({
+          type,
+          count: links.length,
+          info: CLOUD_TYPES[type as keyof typeof CLOUD_TYPES] || CLOUD_TYPES.others
+        })).sort((a, b) => b.count - a.count) // 按数量降序排列
     : [];
 
   if (loading) {

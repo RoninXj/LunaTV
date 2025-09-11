@@ -85,6 +85,42 @@ export async function GET(request: NextRequest) {
 
     const result = await pansouResponse.json();
     
+    // 应用相关性过滤 - 只返回与查询关键词相关的资源
+    if (result.data?.merged_by_type) {
+      const filteredResults: { [key: string]: any[] } = {};
+      
+      Object.keys(result.data.merged_by_type).forEach(type => {
+        const links = result.data.merged_by_type[type];
+        const filteredLinks = links.filter((link: any) => {
+          const trimmedQuery = query.trim().toLowerCase();
+          if (!trimmedQuery) return true;
+          
+          // 检查备注是否包含关键词
+          const noteMatch = link.note?.toLowerCase().includes(trimmedQuery);
+          
+          // 检查来源是否包含关键词
+          const sourceMatch = link.source?.toLowerCase().includes(trimmedQuery);
+          
+          // 如果是精确匹配备注，直接返回true
+          if (link.note?.toLowerCase().trim() === trimmedQuery) {
+            return true;
+          }
+          
+          // 如果任何字段匹配，返回true
+          return noteMatch || sourceMatch;
+        });
+        
+        if (filteredLinks.length > 0) {
+          filteredResults[type] = filteredLinks;
+        }
+      });
+      
+      result.data.merged_by_type = filteredResults;
+      
+      // 重新计算总数
+      result.data.total = Object.values(filteredResults).reduce((total, links) => total + links.length, 0);
+    }
+    
     // 统一返回格式
     const responseData = {
       success: true,

@@ -175,6 +175,31 @@ export async function GET(request: NextRequest) {
       // 根据内容类型过滤模拟结果
       let filteredResults = [...mockSearchResults];
       
+      // 应用相关性过滤 - 只返回与查询关键词相关的资源
+      if (filteredResults.length > 0) {
+        const trimmedQuery = query.trim().toLowerCase();
+        if (trimmedQuery) {
+          filteredResults = filteredResults.filter(video => {
+            // 检查标题是否包含关键词
+            const titleMatch = video.snippet?.title?.toLowerCase().includes(trimmedQuery);
+            
+            // 检查描述是否包含关键词
+            const descMatch = video.snippet?.description?.toLowerCase().includes(trimmedQuery);
+            
+            // 检查频道标题是否包含关键词
+            const channelMatch = video.snippet?.channelTitle?.toLowerCase().includes(trimmedQuery);
+            
+            // 如果是精确匹配标题，直接返回true
+            if (video.snippet?.title?.toLowerCase().trim() === trimmedQuery) {
+              return true;
+            }
+            
+            // 如果任何字段匹配，返回true
+            return titleMatch || descMatch || channelMatch;
+          });
+        }
+      }
+      
       if (contentType !== 'all') {
         // 简单的内容类型过滤逻辑（基于标题关键词）
         const typeFilters = {
@@ -207,7 +232,7 @@ export async function GET(request: NextRequest) {
       const responseData = {
         success: true,
         videos: finalResults,
-        total: finalResults.length,
+        total: finalResults.length, // 更新总数为过滤后的数量
         query: query,
         source: 'demo',
         warning: youtubeConfig.enableDemo ? '当前为演示模式，显示模拟数据' : 'API Key未配置，显示模拟数据。请在管理后台配置YouTube API Key以获取真实搜索结果'
@@ -287,10 +312,36 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
     
+    // 应用相关性过滤 - 只返回与查询关键词相关的资源
+    let filteredVideos = data.items || [];
+    if (filteredVideos.length > 0) {
+      const trimmedQuery = query.trim().toLowerCase();
+      if (trimmedQuery) {
+        filteredVideos = filteredVideos.filter((video: any) => {
+          // 检查标题是否包含关键词
+          const titleMatch = video.snippet?.title?.toLowerCase().includes(trimmedQuery);
+          
+          // 检查描述是否包含关键词
+          const descMatch = video.snippet?.description?.toLowerCase().includes(trimmedQuery);
+          
+          // 检查频道标题是否包含关键词
+          const channelMatch = video.snippet?.channelTitle?.toLowerCase().includes(trimmedQuery);
+          
+          // 如果是精确匹配标题，直接返回true
+          if (video.snippet?.title?.toLowerCase().trim() === trimmedQuery) {
+            return true;
+          }
+          
+          // 如果任何字段匹配，返回true
+          return titleMatch || descMatch || channelMatch;
+        });
+      }
+    }
+    
     const responseData = {
       success: true,
-      videos: data.items || [],
-      total: data.pageInfo?.totalResults || 0,
+      videos: filteredVideos,
+      total: filteredVideos.length, // 更新总数为过滤后的数量
       query: query,
       source: 'youtube'
     };
@@ -310,18 +361,43 @@ export async function GET(request: NextRequest) {
     console.error('YouTube搜索失败:', error);
     
     // API失败时返回模拟数据作为备用
-    const fallbackResults = mockSearchResults.slice(0, 10).map(video => ({
-      ...video,
-      snippet: {
-        ...video.snippet,
-        title: `${query} - ${video.snippet.title}`,
+    let fallbackResults = mockSearchResults.slice(0, 10);
+    
+    // 应用相关性过滤 - 只返回与查询关键词相关的资源
+    if (fallbackResults.length > 0) {
+      const trimmedQuery = query.trim().toLowerCase();
+      if (trimmedQuery) {
+        fallbackResults = fallbackResults.filter(video => {
+          // 检查标题是否包含关键词
+          const titleMatch = video.snippet?.title?.toLowerCase().includes(trimmedQuery);
+          
+          // 检查描述是否包含关键词
+          const descMatch = video.snippet?.description?.toLowerCase().includes(trimmedQuery);
+          
+          // 检查频道标题是否包含关键词
+          const channelMatch = video.snippet?.channelTitle?.toLowerCase().includes(trimmedQuery);
+          
+          // 如果是精确匹配标题，直接返回true
+          if (video.snippet?.title?.toLowerCase().trim() === trimmedQuery) {
+            return true;
+          }
+          
+          // 如果任何字段匹配，返回true
+          return titleMatch || descMatch || channelMatch;
+        });
       }
-    }));
+    }
     
     const fallbackData = {
       success: true,
-      videos: fallbackResults,
-      total: fallbackResults.length,
+      videos: fallbackResults.map(video => ({
+        ...video,
+        snippet: {
+          ...video.snippet,
+          title: `${query} - ${video.snippet.title}`,
+        }
+      })),
+      total: fallbackResults.length, // 更新总数为过滤后的数量
       query: query,
       source: 'fallback'
     };

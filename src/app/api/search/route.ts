@@ -55,6 +55,36 @@ export async function GET(request: NextRequest) {
       .filter((result) => result.status === 'fulfilled')
       .map((result) => (result as PromiseFulfilledResult<any>).value);
     let flattenedResults = successResults.flat();
+    
+    // 应用相关性过滤 - 只返回与查询关键词相关的资源
+    flattenedResults = flattenedResults.filter((result) => {
+      const trimmedQuery = query.trim().toLowerCase();
+      if (!trimmedQuery) return true;
+      
+      // 检查标题是否包含关键词
+      const titleMatch = result.title?.toLowerCase().includes(trimmedQuery);
+      
+      // 检查年份是否匹配（如果查询包含年份）
+      const yearMatch = result.year && trimmedQuery.includes(result.year);
+      
+      // 检查类型名称是否包含关键词
+      const typeNameMatch = result.type_name?.toLowerCase().includes(trimmedQuery);
+      
+      // 检查分类是否包含关键词
+      const classMatch = result.class?.toLowerCase().includes(trimmedQuery);
+      
+      // 检查描述是否包含关键词
+      const descMatch = result.desc?.toLowerCase().includes(trimmedQuery);
+      
+      // 如果是精确匹配标题，直接返回true
+      if (result.title?.toLowerCase().trim() === trimmedQuery) {
+        return true;
+      }
+      
+      // 如果任何字段匹配，返回true
+      return titleMatch || yearMatch || typeNameMatch || classMatch || descMatch;
+    });
+    
     if (!config.SiteConfig.DisableYellowFilter) {
       flattenedResults = flattenedResults.filter((result) => {
         const typeName = result.type_name || '';
