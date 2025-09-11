@@ -19,46 +19,6 @@ interface ApiSearchItem {
 }
 
 /**
- * 检查搜索结果是否与查询关键词相关
- * @param result 搜索结果
- * @param query 查询关键词
- * @returns 是否相关
- */
-function isResultRelevant(result: SearchResult, query: string): boolean {
-  if (!query) return true;
-  
-  const trimmedQuery = query.trim().toLowerCase();
-  if (!trimmedQuery) return true;
-  
-  // 检查标题是否包含关键词
-  if (result.title && result.title.toLowerCase().includes(trimmedQuery)) {
-    return true;
-  }
-  
-  // 检查类型名称是否包含关键词
-  if (result.type_name && result.type_name.toLowerCase().includes(trimmedQuery)) {
-    return true;
-  }
-  
-  // 检查分类是否包含关键词
-  if (result.class && result.class.toLowerCase().includes(trimmedQuery)) {
-    return true;
-  }
-  
-  // 检查年份是否匹配（如果是4位数字）
-  if (trimmedQuery.match(/^\d{4}$/) && result.year === trimmedQuery) {
-    return true;
-  }
-  
-  // 检查描述是否包含关键词
-  if (result.desc && result.desc.toLowerCase().includes(trimmedQuery)) {
-    return true;
-  }
-  
-  return false;
-}
-
-/**
  * 通用的带缓存搜索函数
  */
 async function searchWithCache(
@@ -72,9 +32,7 @@ async function searchWithCache(
   const cached = getCachedSearchPage(apiSite.key, query, page);
   if (cached) {
     if (cached.status === 'ok') {
-      // 对缓存结果也进行相关性过滤
-      const relevantResults = cached.data.filter((result: SearchResult) => isResultRelevant(result, query));
-      return { results: relevantResults, pageCount: cached.pageCount };
+      return { results: cached.data, pageCount: cached.pageCount };
     } else {
       return { results: [] };
     }
@@ -160,12 +118,7 @@ async function searchWithCache(
     });
 
     // 过滤掉集数为 0 的结果
-    let results = allResults.filter((result: SearchResult) => result.episodes.length > 0);
-    
-    // 进一步过滤与查询关键词不相关的结果
-    if (query) {
-      results = results.filter((result: SearchResult) => isResultRelevant(result, query));
-    }
+    const results = allResults.filter((result: SearchResult) => result.episodes.length > 0);
 
     const pageCount = page === 1 ? data.pagecount || 1 : undefined;
     // 写入缓存（成功）

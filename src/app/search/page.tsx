@@ -169,43 +169,6 @@ function SearchPageClient() {
     });
   };
 
-  /**
-   * 检查搜索结果是否与当前查询相关
-   * @param result 搜索结果
-   * @returns 是否相关
-   */
-  const isResultRelevant = (result: SearchResult): boolean => {
-    const query = currentQueryRef.current.trim().toLowerCase();
-    if (!query) return true;
-    
-    // 检查标题是否包含关键词
-    if (result.title && result.title.toLowerCase().includes(query)) {
-      return true;
-    }
-    
-    // 检查类型名称是否包含关键词
-    if (result.type_name && result.type_name.toLowerCase().includes(query)) {
-      return true;
-    }
-    
-    // 检查分类是否包含关键词
-    if (result.class && result.class.toLowerCase().includes(query)) {
-      return true;
-    }
-    
-    // 检查年份是否匹配（如果是4位数字）
-    if (query.match(/^\d{4}$/) && result.year === query) {
-      return true;
-    }
-    
-    // 检查描述是否包含关键词
-    if (result.desc && result.desc.toLowerCase().includes(query)) {
-      return true;
-    }
-    
-    return false;
-  };
-
   // 简化的年份排序：unknown/空值始终在最后
   const compareYear = (aYear: string, bYear: string, order: 'none' | 'asc' | 'desc') => {
     // 如果是无排序状态，返回0（保持原顺序）
@@ -336,11 +299,6 @@ function SearchPageClient() {
   const filteredAllResults = useMemo(() => {
     const { source, title, year, yearOrder } = filterAll;
     const filtered = searchResults.filter((item) => {
-      // 首先检查结果是否与查询相关
-      if (!isResultRelevant(item)) {
-        return false;
-      }
-      
       if (source !== 'all' && item.source !== source) return false;
       if (title !== 'all' && item.title !== title) return false;
       if (year !== 'all' && item.year !== year) return false;
@@ -375,12 +333,6 @@ function SearchPageClient() {
   const filteredAggResults = useMemo(() => {
     const { source, title, year, yearOrder } = filterAgg as any;
     const filtered = aggregatedResults.filter(([_, group]) => {
-      // 检查聚合组中是否有与查询相关的结果
-      const hasRelevantResult = group.some(item => isResultRelevant(item));
-      if (!hasRelevantResult) {
-        return false;
-      }
-      
       const gTitle = group[0]?.title ?? '';
       const gYear = group[0]?.year ?? 'unknown';
       const hasSource = source === 'all' ? true : group.some((item) => item.source === source);
@@ -721,39 +673,14 @@ function SearchPageClient() {
       if (sortOrder && sortOrder !== 'relevance') {
         searchUrl += `&order=${sortOrder}`;
       }
-      
       const response = await fetch(searchUrl);
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // 过滤掉与搜索关键词不相关的视频
-        let filteredVideos = data.videos || [];
-        
-        // 如果有搜索关键词，进一步过滤结果
-        if (query.trim()) {
-          const trimmedQuery = query.trim().toLowerCase();
-          filteredVideos = filteredVideos.filter((video: any) => {
-            const title = (video.snippet?.title || '').toLowerCase();
-            const channel = (video.snippet?.channelTitle || '').toLowerCase();
-            const description = (video.snippet?.description || '').toLowerCase();
-            
-            // 检查标题、频道名或描述中是否包含搜索关键词
-            return title.includes(trimmedQuery) || 
-                   channel.includes(trimmedQuery) || 
-                   description.includes(trimmedQuery);
-          });
-        }
-        
-        setYoutubeResults(filteredVideos);
-        
+        setYoutubeResults(data.videos || []);
         // 如果有警告信息，设置警告状态
         if (data.warning) {
           setYoutubeWarning(data.warning);
-        }
-        
-        // 如果过滤后没有结果，显示提示
-        if (filteredVideos.length === 0 && data.videos && data.videos.length > 0) {
-          setYoutubeWarning('未找到与搜索关键词高度相关的结果');
         }
       } else {
         setYoutubeError(data.error || 'YouTube搜索失败');
@@ -1019,7 +946,6 @@ function SearchPageClient() {
                     loading={netdiskLoading}
                     error={netdiskError}
                     total={netdiskTotal}
-                    searchQuery={searchQuery.trim()} // 传递搜索查询
                   />
                 </>
               ) : searchType === 'youtube' ? (
@@ -1132,7 +1058,7 @@ function SearchPageClient() {
                   ) : youtubeResults && youtubeResults.length > 0 ? (
                     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                       {youtubeResults.map((video, index) => (
-                        <YouTubeVideoCard key={video.videoId || index} video={video} searchQuery={searchQuery.trim()} />
+                        <YouTubeVideoCard key={video.videoId || index} video={video} />
                       ))}
                     </div>
                   ) : !youtubeLoading ? (

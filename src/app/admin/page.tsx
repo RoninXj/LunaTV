@@ -45,7 +45,6 @@ import { createPortal } from 'react-dom';
 import { AdminConfig, AdminConfigResult } from '@/lib/admin.types';
 import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
 import { getIpLocation } from '@/lib/utils';
-import { clearAllSearchCache } from '@/lib/search-cache';
 
 import AIRecommendConfig from '@/components/AIRecommendConfig';
 import CacheManager from '@/components/CacheManager';
@@ -4417,9 +4416,6 @@ const LiveSourceConfig = ({
     });
   };
 
-
-
-
   const handleAddLiveSource = () => {
     if (!newLiveSource.name || !newLiveSource.key || !newLiveSource.url) return;
     withLoading('addLiveSource', async () => {
@@ -5128,8 +5124,6 @@ function AdminPageClient() {
     cacheManager: false,
     dataMigration: false,
   });
-  const [isSaving, setIsSaving] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   // 获取管理员配置
   // showLoading 用于控制是否在请求期间显示整体加载骨架。
@@ -5193,51 +5187,6 @@ function AdminPageClient() {
         throw err;
       }
     });
-  };
-
-  const handleSaveConfig = async () => {
-    if (!config) return;
-
-    setIsSaving(true);
-    setError(null);
-
-    try {
-      // 保存配置
-      const response = await fetch('/api/admin/config', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(config),
-      });
-
-      if (!response.ok) {
-        throw new Error(`保存配置失败: ${response.status} ${response.statusText}`);
-      }
-
-      // 清除配置缓存
-      await fetch('/api/admin/clear-config-cache', { method: 'POST' });
-      
-      // 清除所有搜索缓存（配置更新后需要清除缓存以确保新配置生效）
-      try {
-        await clearAllSearchCache();
-        console.log('✅ 所有搜索缓存已清除');
-      } catch (cacheError) {
-        console.warn('清除搜索缓存失败:', cacheError);
-      }
-
-      // 显示成功消息
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-
-      // 重新加载配置
-      await fetchConfig();
-    } catch (err) {
-      console.error('保存配置时出错:', err);
-      setError(err instanceof Error ? err.message : '保存配置时发生未知错误');
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   if (loading) {
