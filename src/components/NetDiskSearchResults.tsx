@@ -50,15 +50,15 @@ export default function NetDiskSearchResults({ results, loading, error, total }:
   };
 
   const togglePasswordVisibility = (key: string) => {
-    setVisiblePasswords(prev => ({ ...prev, [key]: !prev[key] }));
+    setVisiblePasswords((prev: { [key: string]: boolean }) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const copyToClipboard = async (text: string, key: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopiedItems(prev => ({ ...prev, [key]: true }));
+      setCopiedItems((prev: { [key: string]: boolean }) => ({ ...prev, [key]: true }));
       setTimeout(() => {
-        setCopiedItems(prev => ({ ...prev, [key]: false }));
+        setCopiedItems((prev: { [key: string]: boolean }) => ({ ...prev, [key]: false }));
       }, 2000);
     } catch (err) {
       console.error('复制失败:', err);
