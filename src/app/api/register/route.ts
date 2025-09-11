@@ -162,6 +162,9 @@ export async function POST(req: NextRequest) {
       // 注册用户
       await db.registerUser(username, password);
 
+      // 清除配置缓存，确保获取到最新的配置
+      clearConfigCache();
+      
       // 重新获取配置来添加用户
       const config = await getConfig();
       const newUser = {
