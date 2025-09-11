@@ -5,8 +5,22 @@ import { db } from '@/lib/db';
  */
 export async function clearAllSearchCache(): Promise<void> {
   try {
-    // 获取所有缓存键
-    const allKeys = await db.getAllKeys();
+    // 通过storage访问底层存储来获取所有键
+    const storage: any = (db as any).storage;
+    let allKeys: string[] = [];
+    
+    // 根据不同的存储类型获取所有键
+    if (storage && typeof storage.client?.keys === 'function') {
+      // Redis存储
+      allKeys = await storage.client.keys('*');
+    } else if (typeof storage?.getAllKeys === 'function') {
+      // 如果storage有getAllKeys方法
+      allKeys = await storage.getAllKeys();
+    } else {
+      // 其他情况，无法获取所有键，直接返回
+      console.warn('无法获取所有缓存键，跳过清除操作');
+      return;
+    }
     
     // 过滤出所有搜索相关的缓存键
     const searchKeys = allKeys.filter(key => 
@@ -17,7 +31,7 @@ export async function clearAllSearchCache(): Promise<void> {
     
     // 删除所有搜索缓存项
     for (const key of searchKeys) {
-      await db.del(key);
+      await db.deleteCache(key);
     }
     
     console.log(`✅ 已清除 ${searchKeys.length} 个搜索缓存项`);
@@ -28,12 +42,25 @@ export async function clearAllSearchCache(): Promise<void> {
 
 /**
  * 清除特定查询的搜索缓存
- * @param query 搜索查询
  */
 export async function clearSearchCacheByQuery(query: string): Promise<void> {
   try {
-    // 获取所有缓存键
-    const allKeys = await db.getAllKeys();
+    // 通过storage访问底层存储来获取所有键
+    const storage: any = (db as any).storage;
+    let allKeys: string[] = [];
+    
+    // 根据不同的存储类型获取所有键
+    if (storage && typeof storage.client?.keys === 'function') {
+      // Redis存储
+      allKeys = await storage.client.keys('*');
+    } else if (typeof storage?.getAllKeys === 'function') {
+      // 如果storage有getAllKeys方法
+      allKeys = await storage.getAllKeys();
+    } else {
+      // 其他情况，无法获取所有键，直接返回
+      console.warn('无法获取所有缓存键，跳过清除操作');
+      return;
+    }
     
     // 过滤出与特定查询相关的缓存键
     const queryKeys = allKeys.filter(key => 
@@ -42,7 +69,7 @@ export async function clearSearchCacheByQuery(query: string): Promise<void> {
     
     // 删除匹配的缓存项
     for (const key of queryKeys) {
-      await db.del(key);
+      await db.deleteCache(key);
     }
     
     console.log(`✅ 已清除 ${queryKeys.length} 个与查询"${query}"相关的缓存项`);
