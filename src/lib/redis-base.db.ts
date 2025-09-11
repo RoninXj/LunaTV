@@ -387,9 +387,6 @@ export abstract class BaseRedisStorage implements IStorage {
           // 使用 WATCH 命令监视配置键
           await this.client.watch(this.adminConfigKey());
           
-          // 获取当前配置（可选，用于比较）
-          const currentConfig = await this.client.get(this.adminConfigKey());
-          
           // 开始事务
           const multi = this.client.multi();
           multi.set(this.adminConfigKey(), JSON.stringify(config));
@@ -412,7 +409,9 @@ export abstract class BaseRedisStorage implements IStorage {
           await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
         } catch (err) {
           // 取消 WATCH
-          await this.client.unwatch().catch(() => {});
+          await this.client.unwatch().catch(() => {
+            // 忽略unwatch错误
+          });
           
           retries++;
           if (retries >= maxRetries) {
