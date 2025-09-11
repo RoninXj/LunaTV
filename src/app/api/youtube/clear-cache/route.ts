@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
 import { clearAllYouTubeCache } from '@/lib/youtube-cache';
+import { db } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
@@ -13,8 +14,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // 获取管理员配置以检查用户角色
+    const adminConfig = await db.getAdminConfig();
+    if (!adminConfig) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // 查找当前用户的角色
+    const currentUser = adminConfig.UserConfig.Users.find(
+      (user) => user.username === authInfo.username
+    );
+    
     // 检查用户是否为管理员
-    if (authInfo.role !== 'admin' && authInfo.role !== 'owner') {
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'owner')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
