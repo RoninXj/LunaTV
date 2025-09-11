@@ -4417,51 +4417,7 @@ const LiveSourceConfig = ({
     });
   };
 
-  const handleSaveConfig = async () => {
-    if (!config) return;
 
-    setIsSaving(true);
-    setError(null);
-
-    try {
-      // 保存配置
-      const response = await fetch('/api/admin/config', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(config),
-      });
-
-      if (!response.ok) {
-        throw new Error(`保存配置失败: ${response.status} ${response.statusText}`);
-      }
-
-      // 清除配置缓存
-      await fetch('/api/admin/clear-config-cache', { method: 'POST' });
-      
-      // 清除所有搜索缓存（配置更新后需要清除缓存以确保新配置生效）
-      try {
-        await clearAllSearchCache();
-        console.log('✅ 所有搜索缓存已清除');
-      } catch (cacheError) {
-        console.warn('清除搜索缓存失败:', cacheError);
-      }
-
-      // 显示成功消息
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
-
-      // 重新加载配置
-      const newConfig = await fetchConfig();
-      setConfig(newConfig);
-    } catch (err) {
-      console.error('保存配置时出错:', err);
-      setError(err instanceof Error ? err.message : '保存配置时发生未知错误');
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
 
   const handleAddLiveSource = () => {
@@ -5237,6 +5193,52 @@ function AdminPageClient() {
         throw err;
       }
     });
+  };
+
+  const handleSaveConfig = async () => {
+    if (!config) return;
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      // 保存配置
+      const response = await fetch('/api/admin/config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(config),
+      });
+
+      if (!response.ok) {
+        throw new Error(`保存配置失败: ${response.status} ${response.statusText}`);
+      }
+
+      // 清除配置缓存
+      await fetch('/api/admin/clear-config-cache', { method: 'POST' });
+      
+      // 清除所有搜索缓存（配置更新后需要清除缓存以确保新配置生效）
+      try {
+        await clearAllSearchCache();
+        console.log('✅ 所有搜索缓存已清除');
+      } catch (cacheError) {
+        console.warn('清除搜索缓存失败:', cacheError);
+      }
+
+      // 显示成功消息
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+
+      // 重新加载配置
+      const newConfig = await fetchConfig();
+      setConfig(newConfig);
+    } catch (err) {
+      console.error('保存配置时出错:', err);
+      setError(err instanceof Error ? err.message : '保存配置时发生未知错误');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (loading) {
