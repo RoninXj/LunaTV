@@ -45,6 +45,7 @@ import { createPortal } from 'react-dom';
 import { AdminConfig, AdminConfigResult } from '@/lib/admin.types';
 import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
 import { getIpLocation } from '@/lib/utils';
+import { clearAllSearchCache } from '@/lib/search-cache';
 
 import AIRecommendConfig from '@/components/AIRecommendConfig';
 import CacheManager from '@/components/CacheManager';
@@ -5171,6 +5172,8 @@ function AdminPageClient() {
     cacheManager: false,
     dataMigration: false,
   });
+  const [isSaving, setIsSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   // 获取管理员配置
   // showLoading 用于控制是否在请求期间显示整体加载骨架。
