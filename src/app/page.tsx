@@ -212,7 +212,7 @@ function HomeClient() {
           {aiEnabled && (
             <button
               onClick={() => setShowAIRecommendModal(true)}
-              className='flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full font-medium transition-all transform hover:scale-105 shadow-lg hover:shadow-xl'
+              className='flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full font-medium transition-all hover:scale-105 shadow-lg hover:shadow-xl'
               title='AI影视推荐'
             >
               <Brain className='h-4 w-4' />
