@@ -164,7 +164,7 @@ async function searchWithCache(
     
     // 进一步过滤与查询关键词不相关的结果
     if (query) {
-      results = results.filter(result => isResultRelevant(result, query));
+      results = results.filter((result: SearchResult) => isResultRelevant(result, query));
     }
 
     const pageCount = page === 1 ? data.pagecount || 1 : undefined;
