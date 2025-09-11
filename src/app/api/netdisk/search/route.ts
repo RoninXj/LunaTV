@@ -6,6 +6,82 @@ import { db } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
+/**
+ * 检查网盘资源是否与查询关键词相关
+ * @param resource 网盘资源
+ * @param query 查询关键词
+ * @returns 是否相关
+ */
+function isResourceRelevant(resource: any, query: string): boolean {
+  if (!query) return true;
+  
+  const trimmedQuery = query.trim().toLowerCase();
+  if (!trimmedQuery) return true;
+  
+  // 检查标题是否包含关键词
+  if (resource.title && resource.title.toLowerCase().includes(trimmedQuery)) {
+    return true;
+  }
+  
+  // 检查文件名是否包含关键词
+  if (resource.filename && resource.filename.toLowerCase().includes(trimmedQuery)) {
+    return true;
+  }
+  
+  // 检查描述是否包含关键词
+  if (resource.desc && resource.desc.toLowerCase().includes(trimmedQuery)) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * 过滤网盘搜索结果
+ * @param data 原始搜索数据
+ * @param query 查询关键词
+ * @returns 过滤后的数据
+ */
+function filterNetDiskResults(data: any, query: string): any {
+  if (!query || !data || !data.merged_by_type) {
+    return data;
+  }
+  
+  const filteredData: any = {
+    ...data,
+    merged_by_type: {}
+  };
+  
+  // 遍历每种网盘类型的结果
+  for (const [type, resources] of Object.entries(data.merged_by_type)) {
+    if (Array.isArray(resources)) {
+      // 过滤与查询关键词相关的结果
+      const filteredResources = (resources as any[]).filter(resource => 
+        isResourceRelevant(resource, query)
+      );
+      
+      // 只有当过滤后还有结果时才保留该类型
+      if (filteredResources.length > 0) {
+        filteredData.merged_by_type[type] = filteredResources;
+      }
+    } else {
+      // 如果不是数组，直接保留
+      filteredData.merged_by_type[type] = resources;
+    }
+  }
+  
+  // 更新总数
+  let total = 0;
+  for (const resources of Object.values(filteredData.merged_by_type)) {
+    if (Array.isArray(resources)) {
+      total += resources.length;
+    }
+  }
+  filteredData.total = total;
+  
+  return filteredData;
+}
+
 export async function GET(request: NextRequest) {
   const authInfo = getAuthInfoFromCookie(request);
   if (!authInfo || !authInfo.username) {
@@ -85,12 +161,14 @@ export async function GET(request: NextRequest) {
 
     const result = await pansouResponse.json();
     
+    // 过滤与查询关键词不相关的结果
+    const filteredData = filterNetDiskResults(result.data, query);
+    
     // 统一返回格式
     const responseData = {
       success: true,
       data: {
-        total: result.data?.total || 0,
-        merged_by_type: result.data?.merged_by_type || {},
+        ...filteredData,
         source: 'pansou',
         query: query,
         timestamp: new Date().toISOString()

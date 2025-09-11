@@ -9,6 +9,46 @@ import { yellowWords } from '@/lib/yellow';
 
 export const runtime = 'nodejs';
 
+/**
+ * 检查搜索结果是否与查询关键词相关
+ * @param result 搜索结果
+ * @param query 查询关键词
+ * @returns 是否相关
+ */
+function isResultRelevant(result: any, query: string): boolean {
+  if (!query) return true;
+  
+  const trimmedQuery = query.trim().toLowerCase();
+  if (!trimmedQuery) return true;
+  
+  // 检查标题是否包含关键词
+  if (result.title && result.title.toLowerCase().includes(trimmedQuery)) {
+    return true;
+  }
+  
+  // 检查类型名称是否包含关键词
+  if (result.type_name && result.type_name.toLowerCase().includes(trimmedQuery)) {
+    return true;
+  }
+  
+  // 检查分类是否包含关键词
+  if (result.class && result.class.toLowerCase().includes(trimmedQuery)) {
+    return true;
+  }
+  
+  // 检查年份是否匹配（如果是4位数字）
+  if (trimmedQuery.match(/^\d{4}$/) && result.year === trimmedQuery) {
+    return true;
+  }
+  
+  // 检查描述是否包含关键词
+  if (result.desc && result.desc.toLowerCase().includes(trimmedQuery)) {
+    return true;
+  }
+  
+  return false;
+}
+
 export async function GET(request: NextRequest) {
   const authInfo = getAuthInfoFromCookie(request);
   if (!authInfo || !authInfo.username) {
@@ -55,6 +95,12 @@ export async function GET(request: NextRequest) {
       .filter((result) => result.status === 'fulfilled')
       .map((result) => (result as PromiseFulfilledResult<any>).value);
     let flattenedResults = successResults.flat();
+    
+    // 过滤与查询关键词不相关的结果
+    if (query) {
+      flattenedResults = flattenedResults.filter(result => isResultRelevant(result, query));
+    }
+    
     if (!config.SiteConfig.DisableYellowFilter) {
       flattenedResults = flattenedResults.filter((result) => {
         const typeName = result.type_name || '';

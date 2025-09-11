@@ -23,9 +23,10 @@ interface YouTubeVideo {
 
 interface YouTubeVideoCardProps {
   video: YouTubeVideo;
+  searchQuery?: string; // 添加搜索查询参数
 }
 
-const YouTubeVideoCard = ({ video }: YouTubeVideoCardProps) => {
+const YouTubeVideoCard = ({ video, searchQuery }: YouTubeVideoCardProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [imageError, setImageError] = useState(false);
 
@@ -48,6 +49,24 @@ const YouTubeVideoCard = ({ video }: YouTubeVideoCardProps) => {
 
   const truncateTitle = (title: string, maxLength = 50) => {
     return title.length > maxLength ? title.substring(0, maxLength) + '...' : title;
+  };
+
+  // 高亮搜索关键词
+  const highlightSearchQuery = (text: string) => {
+    if (!searchQuery) return text;
+    
+    const regex = new RegExp(`(${searchQuery})`, 'gi');
+    const parts = text.split(regex);
+    
+    return parts.map((part, index) => 
+      regex.test(part) ? (
+        <span key={index} className="bg-yellow-200 dark:bg-yellow-600 font-bold">
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
   };
 
   return (
@@ -119,7 +138,7 @@ const YouTubeVideoCard = ({ video }: YouTubeVideoCardProps) => {
       {/* 视频信息区域 */}
       <div className="p-4">
         <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-2 line-clamp-2">
-          {truncateTitle(video.snippet.title)}
+          {searchQuery ? highlightSearchQuery(video.snippet.title) : truncateTitle(video.snippet.title)}
         </h3>
         
         <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-3">
