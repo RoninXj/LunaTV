@@ -95,16 +95,23 @@ const EnhancedThemeToggle: React.FC = () => {
 
   const handleThemeChange = (newTheme: ThemeMode) => {
     // 检查浏览器是否支持 View Transitions API，保持原有的平滑动画
-    // @ts-ignore
-    if (!(document as any).startViewTransition) {
+    const supportsViewTransition = 
+      typeof document !== 'undefined' && 
+      'startViewTransition' in document.documentElement.style;
+      
+    if (!supportsViewTransition) {
       setTheme(newTheme);
       setIsOpen(false);
       applyThemeStyles(newTheme);
       return;
     }
 
-    // @ts-ignore
-    (document as any).startViewTransition(() => {
+    // 类型断言确保 startViewTransition 存在
+    const doc = document as typeof document & {
+      startViewTransition: (callback: () => void) => void;
+    };
+    
+    doc.startViewTransition(() => {
       setTheme(newTheme);
       setIsOpen(false);
       applyThemeStyles(newTheme);

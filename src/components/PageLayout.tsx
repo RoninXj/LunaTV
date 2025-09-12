@@ -2,7 +2,6 @@ import { BackButton } from './BackButton';
 import MobileBottomNav from './MobileBottomNav';
 import MobileHeader from './MobileHeader';
 import Sidebar from './Sidebar';
-import { ThemeToggle } from './ThemeToggle';
 import { UserMenu } from './UserMenu';
 import EnhancedThemeToggle from './EnhancedThemeToggle';
 
