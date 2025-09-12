@@ -2912,40 +2912,11 @@ function PlayPageClient() {
               
               console.log('移动端弹幕配置切换功能已激活');
             } else {
-              // 🖥️ 桌面端：保持原版CSS hover + 仅添加键盘快捷键
-              console.log('桌面端保持原版hover机制，添加键盘快捷键');
+              // 🖥️ 桌面端：完全保留官方原版hover体验
+              console.log('桌面端使用官方原版hover机制');
               
-              // 🎹 键盘快捷键支持
-              const handleKeyboardShortcuts = (e: KeyboardEvent) => {
-                // D键快速切换弹幕显示/隐藏
-                if (e.key.toLowerCase() === 'd' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-                  if ((e.target as HTMLElement).tagName !== 'INPUT' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
-                    e.preventDefault();
-                    if (artPlayerRef.current?.plugins?.artplayerPluginDanmuku) {
-                      const isVisible = !artPlayerRef.current.plugins.artplayerPluginDanmuku.isHide;
-                      if (isVisible) {
-                        artPlayerRef.current.plugins.artplayerPluginDanmuku.hide();
-                      } else {
-                        artPlayerRef.current.plugins.artplayerPluginDanmuku.show();
-                      }
-                      console.log('🎹 快捷键切换弹幕:', isVisible ? '隐藏' : '显示');
-                    }
-                  }
-                }
-              };
-              
-              document.addEventListener('keydown', handleKeyboardShortcuts);
-              
-              // 🔄 清理函数
-              const cleanupDesktopOptimizations = () => {
-                document.removeEventListener('keydown', handleKeyboardShortcuts);
-              };
-              
-              if (artPlayerRef.current) {
-                artPlayerRef.current.on('destroy', cleanupDesktopOptimizations);
-              }
-              
-              console.log('✅ 桌面端保持原版hover + 键盘快捷键已启用');
+              // 不做任何修改，完全使用官方CSS hover
+              console.log('✅ 桌面端保持官方原版hover体验');
             }
           }, 2000); // 延迟2秒确保弹幕插件完全初始化
         };
