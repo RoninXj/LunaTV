@@ -1,5 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 'use client';
 
+import { AlertCircle, CheckCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
@@ -7,7 +10,7 @@ import { CURRENT_VERSION } from '@/lib/version';
 import { checkForUpdates, UpdateStatus } from '@/lib/version_check';
 
 import { useSite } from '@/components/SiteProvider';
-import EnhancedThemeToggle from '@/components/EnhancedThemeToggle';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 // 版本显示组件
 function VersionDisplay() {
@@ -46,17 +49,18 @@ function VersionDisplay() {
               : ''
             }`}
         >
-          {updateStatus === UpdateStatus.HAS_UPDATE ? (
+          {updateStatus === UpdateStatus.HAS_UPDATE && (
             <>
-              <span className='w-2 h-2 rounded-full bg-yellow-500'></span>
-              有更新
+              <AlertCircle className='w-3.5 h-3.5' />
+              <span className='font-semibold text-xs'>有新版本</span>
             </>
-          ) : updateStatus === UpdateStatus.NO_UPDATE ? (
+          )}
+          {updateStatus === UpdateStatus.NO_UPDATE && (
             <>
-              <span className='w-2 h-2 rounded-full bg-green-500'></span>
-              最新版本
+              <CheckCircle className='w-3.5 h-3.5' />
+              <span className='font-semibold text-xs'>已是最新</span>
             </>
-          ) : null}
+          )}
         </div>
       )}
     </button>
@@ -66,42 +70,27 @@ function VersionDisplay() {
 function LoginPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { siteName } = useSite();
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [username, setUsername] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [shouldAskUsername, setShouldAskUsername] = useState(false);
 
-  useEffect(() => {
-    // 检查是否需要用户名（多用户模式）
-    const checkMode = async () => {
-      try {
-        const res = await fetch('/api/auth-mode');
-        const data = await res.json();
-        setShouldAskUsername(data.multiUser);
-      } catch (_) {
-        // 默认为单用户模式
-        setShouldAskUsername(false);
-      }
-    };
+  const { siteName } = useSite();
 
-    checkMode();
+  // 在客户端挂载后设置配置
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storageType = (window as any).RUNTIME_CONFIG?.STORAGE_TYPE;
+      setShouldAskUsername(storageType && storageType !== 'localstorage');
+    }
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
+    setError(null);
 
-    if (shouldAskUsername && !username.trim()) {
-      setError('请输入用户名');
-      return;
-    }
-
-    if (!password) {
-      setError('请输入密码');
-      return;
-    }
+    if (!password || (shouldAskUsername && !username)) return;
 
     try {
       setLoading(true);
@@ -130,58 +119,50 @@ function LoginPageClient() {
     }
   };
 
+
+
   return (
     <div className='relative min-h-screen flex items-center justify-center px-4 overflow-hidden'>
       <div className='absolute top-4 right-4'>
-        <EnhancedThemeToggle />
+        <ThemeToggle />
       </div>
       <div className='relative z-10 w-full max-w-md rounded-3xl bg-gradient-to-b from-white/90 via-white/70 to-white/40 dark:from-zinc-900/90 dark:via-zinc-900/70 dark:to-zinc-900/40 backdrop-blur-xl shadow-2xl p-10 dark:border dark:border-zinc-800'>
         <h1 className='text-3xl font-extrabold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-blue-600 tracking-tight text-center drop-shadow-sm hover:scale-105 transition-transform duration-200'>
           {siteName}
         </h1>
-
-        <form onSubmit={handleSubmit} className='space-y-6'>
-          {/* 用户名输入框（仅在多用户模式下显示） */}
+        <form onSubmit={handleSubmit} className='space-y-8'>
           {shouldAskUsername && (
             <div>
-              <label
-                htmlFor='username'
-                className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'
-              >
+              <label htmlFor='username' className='sr-only'>
                 用户名
               </label>
               <input
                 id='username'
                 type='text'
+                autoComplete='username'
+                className='block w-full rounded-lg border-0 py-3 px-4 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-white/60 dark:ring-white/20 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none sm:text-base bg-white/60 dark:bg-zinc-800/60 backdrop-blur'
+                placeholder='输入用户名'
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className='w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-zinc-800/50 backdrop-blur-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200'
-                placeholder='请输入用户名'
-                disabled={loading}
               />
             </div>
           )}
 
-          {/* 密码输入框 */}
           <div>
-            <label
-              htmlFor='password'
-              className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'
-            >
+            <label htmlFor='password' className='sr-only'>
               密码
             </label>
             <input
               id='password'
               type='password'
+              autoComplete='current-password'
+              className='block w-full rounded-lg border-0 py-3 px-4 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-white/60 dark:ring-white/20 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none sm:text-base bg-white/60 dark:bg-zinc-800/60 backdrop-blur'
+              placeholder='输入访问密码'
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className='w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-zinc-800/50 backdrop-blur-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200'
-              placeholder='请输入密码'
-              disabled={loading}
             />
           </div>
 
-          {/* 错误信息显示 */}
           {error && (
             <p className='text-sm text-red-600 dark:text-red-400'>{error}</p>
           )}

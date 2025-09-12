@@ -4,8 +4,8 @@ import Link from 'next/link';
 
 import { BackButton } from './BackButton';
 import { useSite } from './SiteProvider';
+import { ThemeToggle } from './ThemeToggle';
 import { UserMenu } from './UserMenu';
-import EnhancedThemeToggle from './EnhancedThemeToggle';
 
 interface MobileHeaderProps {
   showBackButton?: boolean;
@@ -42,7 +42,7 @@ const MobileHeader = ({ showBackButton = false }: MobileHeaderProps) => {
 
         {/* 右侧按钮 */}
         <div className='flex items-center gap-2'>
-          <EnhancedThemeToggle />
+          <ThemeToggle />
           <UserMenu />
         </div>
       </div>
@@ -51,7 +51,7 @@ const MobileHeader = ({ showBackButton = false }: MobileHeaderProps) => {
       <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'>
         <Link
           href='/'
-          className='text-xl font-bold text-gray-800 dark:text-gray-200'
+          className='text-2xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent tracking-tight hover:scale-105 transition-transform duration-200'
         >
           {siteName}
         </Link>
