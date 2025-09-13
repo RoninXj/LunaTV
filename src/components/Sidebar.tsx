@@ -260,10 +260,22 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
                   const decodedActive = decodeURIComponent(active);
                   const decodedItemHref = decodeURIComponent(item.href);
 
-                  const isActive =
-                    decodedActive === decodedItemHref ||
-                    (decodedActive.startsWith('/douban') &&
-                      decodedActive.includes(`type=${typeMatch}`));
+                  // 修改激活状态判断逻辑，正确处理所有类型的路径
+                  let isActive = false;
+                  if (item.href === '/shortdrama') {
+                    // 特殊处理短剧路径
+                    isActive = decodedActive === decodedItemHref || decodedActive.startsWith('/shortdrama');
+                  } else if (typeMatch) {
+                    // 处理带有type参数的路径（如电影、剧集等）
+                    isActive =
+                      decodedActive === decodedItemHref ||
+                      (decodedActive.startsWith('/douban') &&
+                        decodedActive.includes(`type=${typeMatch}`));
+                  } else {
+                    // 处理其他简单路径
+                    isActive = decodedActive === decodedItemHref;
+                  }
+
                   const Icon = item.icon;
                   return (
                     <Link
